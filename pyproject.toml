@@ -5,13 +5,3 @@ description = "Data mapping framework for CDISC standards."
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
 packages = [{include="pinemarten"}]
-
-[tool.poetry.dependencies]
-python = "^3.8"
-requests = "^2.32.3"
-urllib3 = "1.26.6"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"

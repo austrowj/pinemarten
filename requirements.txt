@@ -3,4 +3,4 @@ urllib3==1.26.6
 pip-system-certs
 
 pydantic
-datamodel-codegen
+datamodel-code-generator

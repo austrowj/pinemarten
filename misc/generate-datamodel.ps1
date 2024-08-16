@@ -1,0 +1,1 @@
+datamodel-codegen --input .\api\cdisc-library-api.json --input-file-type openapi --output .\api\cdisc_library_api_schema.py --use-annotated

@@ -2,6 +2,9 @@
 
 import json, sys
 from schemas import cm_variables as cm
+from . import test
+
+test.get
 
 x = cm.Model.model_validate(json.load(open(sys.argv[1])))
 

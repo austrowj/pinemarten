@@ -1,0 +1,1 @@
+openapi-python-client generate --path .\pinemarten\schema\cdisc-library.json --overwrite

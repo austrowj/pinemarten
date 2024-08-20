@@ -9,7 +9,7 @@ from parse import parse, Result
 
 # Pass the actual href (that includes argument values), the client module for the endpoint, and the args needed.
 # You get a dictionary of the arguments and their values that you can pass to that same module.
-def parse_endpoint(url_literal: str, module: object, *args: str) -> dict[str, str]:
+def parse_endpoint_arguments(url_literal: str, module: object, *args: str) -> dict[str, str]:
 
     # Assume that if "module" has this (private) function, it's a valid module from our API client and will function
     # as expected.

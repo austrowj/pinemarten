@@ -51,7 +51,7 @@ def run(out_root: str=''):
             # Trying out a pattern (hack) to extract endpoint arguments.
             # If we assume the type of object this link returns, we can parse the argument values out of its href.
             # Yes, we are using a private member function from the generated client. May end up regretting this later.
-            parsed_args = endpoint_hack.parse_endpoint(
+            parsed_args = endpoint_hack.parse_endpoint_arguments(
                 dataset_link.href,
                 api_products_sdtmig_get_dataset,
                 'version', 'dataset'

@@ -5,3 +5,4 @@ pip-system-certs
 
 pydantic
 datamodel-code-generator
+parse

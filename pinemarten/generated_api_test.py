@@ -32,7 +32,14 @@ def run(out_root: str=''):
 
         # Silently do nothing if anything unexpected happens ¯\_(ツ)_/¯
         if not isinstance(dataset_data, DataTabulationDatasetList): return
-        print(json.dumps(dataset_data.to_dict(), indent=4))
+
+        # The dataset is valid; print to file if folder specified, otherwise to stdout.        
+        if out_root:
+            with open(f'{out_root}/datasets.json','w') as f:
+                json.dump(dataset_data.to_dict(), f, indent=4)
+        else:
+            print(json.dumps(dataset_data.to_dict(), indent=4))
+
 
         if not isinstance(dataset_data.field_links, DataTabulationDatasetListLinks): return
         if not isinstance(dataset_data.field_links.datasets, list): return

@@ -6,9 +6,24 @@
 
 from __future__ import annotations
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic_v2 import BaseModel, Field
 
 class {{ dataset.name }}(BaseModel):
+    """
+    {{ dataset.label }}
+
+    Description:
+    {{ '' }}
+    {%- for line in dataset.description -%}
+        {{ line }}
+    {% endfor %}
+    Structure:
+    {{ '' }}
+    {%- for line in dataset.dataset_structure -%}
+        {{ line }}
+    {% endfor %}
+    """
+    {{ '' }}
     {{ '' }}
     {%- for variable in dataset.variables -%}
         {{ variable.name }}: {{ variable.python_type }}

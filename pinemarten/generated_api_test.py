@@ -37,7 +37,7 @@ def run(version: str, out_root: str=''):
 
         # Print to file if folder specified, otherwise to stdout.        
         if out_path:
-            with open(out_path / 'datasets.json', 'w') as f:
+            with open(out_path / '_datasets.json', 'w') as f:
                 json.dump(dataset_data.to_dict(), f, indent=4)
         else:
             print(json.dumps(dataset_data.to_dict(), indent=4))

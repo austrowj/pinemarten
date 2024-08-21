@@ -6,3 +6,8 @@ pip-system-certs
 pydantic
 datamodel-code-generator
 parse
+
+# for xport
+pandas
+setuptools
+# xport # run this one manually with --no-deps specified

@@ -1,6 +1,7 @@
 # pyright: strict
 
 import json, sys
+import dataset_generator
 
 from cdisc_library_api_client.api.sdtm_implementation_guide_sdtmig import api_products_sdtmig_get_datasets
 from cdisc_library_api_client.api.sdtm_implementation_guide_sdtmig import api_products_sdtmig_get_dataset
@@ -47,7 +48,7 @@ def run(out_root: str=''):
         # Fetch the details of each dataset returned
         for i, dataset_link in enumerate(dataset_data.field_links.datasets):
             # but only the first two :)
-            if i > 1: break
+            if i > 0: break
             print(dataset_link)
 
             # Another silent fail
@@ -75,7 +76,7 @@ def run(out_root: str=''):
                 with open(f'{out_root}/{parsed_args["dataset"]}.json','w') as f:
                     json.dump(res.to_dict(), f, indent=4)
             else:
-                print(json.dumps(res.to_dict(), indent=4))
+                dataset_generator.generate(res, '')
 
         # Old code from the example, left here for reference
 

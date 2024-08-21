@@ -4,6 +4,12 @@
 # pyright: reportAttributeAccessIssue = false
 # pyright: reportPrivateUsage = false
 
+# Alternative, safer concept:
+# Each resource is uniquely identified by its endpoint, which is reliably available via the "self" link.
+# So if we fetch resources in order of reverse granularity, we can index the linked resources by their endpoint.
+# Using a different table for each resource type will retain type safety upon retrieval.
+# Note that this requires two indexes: one to map endpoint IDs to tables, and another within each table.
+
 from typing import Callable, Any
 from parse import parse, Result
 

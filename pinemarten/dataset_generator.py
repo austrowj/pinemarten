@@ -2,6 +2,9 @@
 
 # Generates a python file that defines a Pydantic class based on a dataset from the CDISC API.
 
+# IDEAS
+# - Pydantic Fields can specify "exclude" to exclude the variable from the schema
+
 import logging, jinja2, datetime, textwrap, json
 from pathlib import Path
 from typing import List
@@ -16,6 +19,8 @@ from util import ensure
 class OutputVariable:
     name: str
     python_type: str
+    label: str
+    description: str
 
 def generate(ds: SdtmigDataset, out_path: Path | None) -> None:
     dataset_variables = ensure(ds.dataset_variables)
@@ -24,15 +29,17 @@ def generate(ds: SdtmigDataset, out_path: Path | None) -> None:
     out_vars: List[OutputVariable] = []
     for variable in dataset_variables:
 
-        name = ensure(variable.name, f'No name present for ordinal {variable.ordinal}.')
-        ordinal = int(ensure(variable.ordinal, f'No ordinal present for variable {name}'))
+        name = ensure(variable.name, msg=f'No name present for ordinal {variable.ordinal}.')
+        ordinal = int(ensure(variable.ordinal, msg=f'No ordinal present for variable {name}'))
 
         if ordinal <= last:
             logging.warning('Dataset variables not processed in ordinal order: ' + str(variable.name))
 
         out_vars.append(OutputVariable(
             name=name.ljust(8),
-            python_type= 'str' if variable.simple_datatype == 'Char' else 'float'
+            python_type= 'str' if variable.simple_datatype == 'Char' else 'Decimal',
+            label = ensure(variable.label, default=str),
+            description = ensure(variable.description, default=str)
         ))
         last = ordinal
     

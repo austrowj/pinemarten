@@ -3,8 +3,10 @@
 #   timestamp:        {{ output.time }}
 
 # pyright: strict
+# pyright: reportUnusedImport = false
 
-from pydantic import BaseModel
+from decimal import Decimal
+from pydantic import BaseModel, Field
 
 class {{ dataset.name }}(BaseModel):
     """
@@ -20,9 +22,16 @@ class {{ dataset.name }}(BaseModel):
     {%- for line in dataset.dataset_structure -%}
         {{ line }}
     {% endfor %}
+    Attributes:
+        {{ '' }}
+        {%- for variable in dataset.variables -%}
+            {{ variable.name }} ({{ variable.python_type }}): {{ variable.label }}
+        {% endfor %}
     """
     {{ '' }}
     {{ '' }}
     {%- for variable in dataset.variables -%}
-        {{ variable.name }}: {{ variable.python_type }}
+        {{ variable.name }} : {{ variable.python_type }} = Field(...,
+            title="""{{ variable.label }}""",
+            description="""{{ variable.description }}""")
     {% endfor %}

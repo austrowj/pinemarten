@@ -1,7 +1,24 @@
 [tool.poetry]
+package-mode = true
 name = "pinemarten"
 version = "0.0.1"
 description = "Data mapping framework for CDISC standards."
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
 packages = [{include="pinemarten"}]
+
+[tool.poetry.dependencies]
+python = "^3.12"  # Define your Python version here
+# Add other dependencies here, for example:
+# requests = "^2.25.0"
+# numpy = "^1.20.0"
+
+[tool.poetry.dev-dependencies]
+# These are your development dependencies, e.g., for testing, linting, etc.
+
+[tool.poetry.package]
+include = ["pinemarten/py.typed"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

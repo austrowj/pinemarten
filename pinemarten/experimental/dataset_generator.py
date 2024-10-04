@@ -5,9 +5,9 @@
 # IDEAS
 # - Pydantic Fields can specify "exclude" to exclude the variable from the schema
 
-import logging, jinja2, datetime, textwrap, json
+from typing import Any
+import jinja2, datetime, textwrap, json
 from pathlib import Path
-from typing import List
 from dataclasses import dataclass
 
 from cdisc_library_api_client.types import Unset
@@ -17,38 +17,53 @@ from pinemarten.experimental.util import ensure
 
 @dataclass
 class OutputVariable:
+    # So originally the plan was to produce python code.
+    # But plans change, so I just grafted on the typescript stuff.
     name: str
     python_type: str
     ts_type: str
     sql_type: str
-    ordinal: int
-    label: str
-    description: str
+    properties: dict[str, Any]
+    description: list[str]
 
-def generate(ds: SdtmigDataset, out_path: Path | None) -> None:
+@dataclass
+class OutputType:
+    name: str
+    description: str
+    variables: list[OutputVariable]
+
+def generate(ds: SdtmigDataset, out_path: Path | None, test_run: bool = True) -> None:
     dataset_variables = ensure(ds.dataset_variables)
     
-    last = 0
-    out_vars: List[OutputVariable] = []
+    out_types = {
+        'Req': OutputType('Required', 'Required variables', []),
+        'Exp': OutputType('Expected', 'Expected variables', []),
+        'Perm': OutputType('Permissible', 'Permissible variables', []),
+        'Cond': OutputType('ConditionallyRequired', 'Conditionally-required variables', []),
+        '': OutputType('Uncategorized', 'Variables with unimplemented requirements (this should be empty)', [])
+    }
     for i, variable in enumerate(dataset_variables):
-        if i > 3: pass
+        if test_run and i > 3: pass
 
         name = ensure(variable.name, msg=f'No name present for ordinal {variable.ordinal}.')
-        ordinal = int(ensure(variable.ordinal, msg=f'No ordinal present for variable {name}'))
 
-        if ordinal <= last:
-            logging.warning('Dataset variables not processed in ordinal order: ' + str(variable.name))
-
-        out_vars.append(OutputVariable(
-            name=name.ljust(8),
-            python_type = 'str' if variable.simple_datatype == 'Char' else 'Decimal',
-            ts_type = 'string' if variable.simple_datatype == 'Char' else 'number',
-            ordinal = ordinal,
-            sql_type = 'text' if variable.simple_datatype == 'Char' else 'real',
-            label = ensure(variable.label, default=str),
-            description = ensure(variable.description, default=str)
+        core = ensure(variable.core, default=str)
+        out_types[ core if core in out_types.keys() else ''].variables.append(OutputVariable(
+            name = name,
+            python_type =
+                'str' if variable.simple_datatype == 'Char'
+                else 'Decimal',
+            ts_type =
+                'string' if variable.simple_datatype == 'Char'
+                else 'number',
+            sql_type =
+                'text' if variable.simple_datatype == 'Char'
+                else 'real',
+            description =
+                [] if isinstance(variable.description, Unset)
+                else textwrap.fill(variable.description, width=72-4).split(sep='\n'),
+            properties = variable.to_dict()
         ))
-        last = ordinal
     
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader('pinemarten/templates'),
@@ -69,7 +84,7 @@ def generate(ds: SdtmigDataset, out_path: Path | None) -> None:
             'dataset_structure':
                 [] if isinstance(ds.dataset_structure, Unset)
                 else textwrap.fill(ds.dataset_structure, width=72-4).split(sep='\n'),
-            'variables': out_vars
+            'types': out_types
         }
     )
 

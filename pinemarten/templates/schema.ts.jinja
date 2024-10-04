@@ -2,9 +2,10 @@
  * Source filename:  {{ input.name }}
  * Timestamp:        {{ output.time }}
  */
-
+{%+ for typename, type in dataset.types.items() +%}
 /**
  * {{ dataset.label }}
+ * {{ type.description }}
  *
  * Description:
    {% for line in dataset.description %}
@@ -16,16 +17,20 @@
  * {{ line }}
    {% endfor %}
  */
-type {{ dataset.name }} = {% raw %}{{% endraw %}
-    {% for variable in dataset.variables %}
+export type {{ type.name }} = {% raw %}{{% endraw %}
+    {% for variable in type.variables %}
     {{ '' }}
     /**
-     * {{ variable.description }}
+       {% for line in variable.description %}
+     * {{ line }}
+       {% endfor %}
      *
-     * @items.label {{ variable.label }}
-     * @items.ordinal {{ variable.ordinal }}
+       {% for key, value in variable.properties.items() %}
+     * @items.{{ key }} {{ value }}
+       {% endfor %}
      * @items.sqltype {{ variable.sql_type }}
      */
     {{ variable.name }}: {{ variable.ts_type }}
     {% endfor %}
 {% raw %}}{% endraw %}
+{%+ endfor +%}

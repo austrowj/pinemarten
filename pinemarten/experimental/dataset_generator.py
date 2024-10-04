@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from cdisc_library_api_client.types import Unset
 from cdisc_library_api_client.models.sdtmig_dataset import SdtmigDataset
 
-from util import ensure
+from pinemarten.experimental.util import ensure
 
 @dataclass
 class OutputVariable:

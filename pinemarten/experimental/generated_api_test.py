@@ -48,7 +48,7 @@ def run(version: str, out_root: str=''):
         # Fetch the details of each dataset returned
         for i, dataset_link in enumerate(datasets):
             # but only for selected ones :)
-            if i not in (0,1,2): continue
+            if i not in (0,1,2): pass
 
             print(dataset_link)
             href = ensure(dataset_link.href)

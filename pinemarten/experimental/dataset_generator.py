@@ -19,6 +19,9 @@ from pinemarten.experimental.util import ensure
 class OutputVariable:
     name: str
     python_type: str
+    ts_type: str
+    sql_type: str
+    ordinal: int
     label: str
     description: str
 
@@ -27,7 +30,8 @@ def generate(ds: SdtmigDataset, out_path: Path | None) -> None:
     
     last = 0
     out_vars: List[OutputVariable] = []
-    for variable in dataset_variables:
+    for i, variable in enumerate(dataset_variables):
+        if i > 3: pass
 
         name = ensure(variable.name, msg=f'No name present for ordinal {variable.ordinal}.')
         ordinal = int(ensure(variable.ordinal, msg=f'No ordinal present for variable {name}'))
@@ -37,14 +41,21 @@ def generate(ds: SdtmigDataset, out_path: Path | None) -> None:
 
         out_vars.append(OutputVariable(
             name=name.ljust(8),
-            python_type= 'str' if variable.simple_datatype == 'Char' else 'Decimal',
+            python_type = 'str' if variable.simple_datatype == 'Char' else 'Decimal',
+            ts_type = 'string' if variable.simple_datatype == 'Char' else 'number',
+            ordinal = ordinal,
+            sql_type = 'text' if variable.simple_datatype == 'Char' else 'real',
             label = ensure(variable.label, default=str),
             description = ensure(variable.description, default=str)
         ))
         last = ordinal
     
-    env = jinja2.Environment(loader=jinja2.FileSystemLoader('pinemarten/templates'))
-    template = env.get_template('ds.py.jinja')
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader('pinemarten/templates'),
+        trim_blocks=True,
+        lstrip_blocks=True
+    )
+    template = env.get_template('schema.ts.jinja')
     output = template.render(
         generator={'name': __name__},
         input={'name': str(ds.name) + '.json'},
@@ -67,7 +78,7 @@ def generate(ds: SdtmigDataset, out_path: Path | None) -> None:
         with open(out_path / f'{str(ds.name)}.json', 'w') as f:
             json.dump(ds.to_dict(), f, indent=4)
 
-        with open(out_path / f'{str(ds.name)}.py', 'w') as f:
+        with open(out_path / f'{str(ds.name)}.ts', 'w') as f:
             f.write(output)
             
     else:

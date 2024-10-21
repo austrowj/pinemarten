@@ -1,8 +1,9 @@
 import { RDataFrame } from './dataframe'
+import { ProgramNode, ReferenceNode, AssignNode, printProgram } from '../ast'
 
-export type RSymbolTable = {[s: string]: RDataFrame<any>}
+export type RSymbolTable = {[s: string]: RDataFrame<any>} // can only bind RDataFrames
 
-export class REnvironment<E extends RSymbolTable> { // can only bind RDataFrames
+export class REnvironment<E extends RSymbolTable> {
     public program: ProgramNode
 
     public static startupStatements() {
@@ -28,7 +29,7 @@ export class REnvironment<E extends RSymbolTable> { // can only bind RDataFrames
         )
     }
 
-    public resolveSymbol<K extends KeyOf<E>>(key: K) {
+    public resolveSymbol<K extends string & keyof E>(key: K) {
         return new RDataFrame<E[K]['schema']>() // the symbol is always bound to a RDataFrame so this is legit
             .reference(key)
     }
@@ -63,7 +64,7 @@ export class ADaMTestEnvironment<E extends RSymbolTable> extends REnvironment<E>
         )
     }
 
-    public static save<E extends RSymbolTable>(env: REnvironment<E>, df: KeyOf<E>) {
+    public static save<E extends RSymbolTable>(env: REnvironment<E>, df: string & keyof E) {
         env.program.setAfter(new ReferenceNode(`${df} |> save("${df}")`))
     }
 }

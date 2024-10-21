@@ -1,5 +1,6 @@
+// A very simple abstract syntax tree for R programs that only allows (some of the) dplyr verbs.
 
-class ProgramNode {
+export class ProgramNode {
     public op = 'holder'
     public children: ProgramNode[]
     
@@ -20,7 +21,7 @@ class ProgramNode {
     }
 }
 
-class PlaintextNode extends ProgramNode {
+export class PlaintextNode extends ProgramNode {
     public op = 'plaintext'
     constructor(
         public text: string
@@ -29,12 +30,12 @@ class PlaintextNode extends ProgramNode {
     public rep() { return this.text }
 }
 
-class ReferenceNode extends PlaintextNode { // same functionality but communicates intent better
+export class ReferenceNode extends PlaintextNode { // same functionality but communicates intent better
     public op = 'ref'
     constructor(name: string) { super(name) }
 }
 
-class AssignNode extends ProgramNode {
+export class AssignNode extends ProgramNode {
     public op = 'assign'
     constructor(
         private name: string,
@@ -49,7 +50,7 @@ class AssignNode extends ProgramNode {
     }
 }
 
-class SelectNode extends ProgramNode {
+export class SelectNode extends ProgramNode {
     public op = 'select'
     constructor(
         private reshape: Record<string, string> = {},
@@ -78,7 +79,7 @@ class SelectNode extends ProgramNode {
     }
 }
 
-class MutateNode extends ProgramNode {
+export class MutateNode extends ProgramNode {
     public op = 'mutate'
     constructor(
         private resultName: string,
@@ -94,7 +95,7 @@ class MutateNode extends ProgramNode {
     }
 }
 
-class ParameterNode extends ProgramNode {
+export class ParameterNode extends ProgramNode {
     public op = 'parameter'
     constructor(
         private name: string,
@@ -108,7 +109,7 @@ class ParameterNode extends ProgramNode {
     }
 }
 
-class JoinNode extends ProgramNode {
+export class JoinNode extends ProgramNode {
     public op = 'join'
     constructor(
         private kind: string,
@@ -125,7 +126,7 @@ class JoinNode extends ProgramNode {
     }
 }
 
-class WhereNode extends ProgramNode {
+export class WhereNode extends ProgramNode {
     public op = 'where'
     constructor(
         private condition: string
@@ -138,7 +139,7 @@ class WhereNode extends ProgramNode {
     }
 }
 
-function printProgram(root: ProgramNode, depth: number = 0): string {
+export function printProgram(root: ProgramNode, depth: number = 0): string {
     const tab = '    '.repeat(depth)
     const res = 
         (root.rep() == null

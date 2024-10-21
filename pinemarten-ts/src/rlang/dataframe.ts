@@ -1,5 +1,8 @@
 import { RExpression } from './expparse'
 
+import { KeyOfType, Reshape, Mutate, Join, Where, WhereEq } from '../schema_operations'
+import { ProgramNode, PlaintextNode, ReferenceNode, JoinNode, SelectNode, WhereNode, MutateNode } from '../ast'
+
 export class RDataFrame<T> {
     public readonly schema = {} as T // only used to obtain type info and doesn't actually hold data
 
@@ -21,22 +24,22 @@ export class RDataFrame<T> {
 
     // Overloads for select
     // Only renaming
-    public select<NewShape extends Record<keyof NewShape & string, KeyOf<T>>> (
+    public select<NewShape extends Record<string & keyof NewShape, string & keyof T>> (
         select: NewShape
     ): RDataFrame<Reshape<T, NewShape, never>>;
 
     // Only original names
-    public select<OriginalKeys extends KeyOf<T>> (
+    public select<OriginalKeys extends string & keyof T> (
         ...choose: OriginalKeys[]
     ): RDataFrame<Reshape<T, {}, OriginalKeys>>;
 
     // Combination of both
-    public select<NewShape extends Record<keyof NewShape, keyof T>, OriginalKeys extends KeyOf<T>> (
+    public select<NewShape extends Record<keyof NewShape, keyof T>, OriginalKeys extends string & keyof T> (
         select: NewShape, ...choose: OriginalKeys[]
     ): RDataFrame<Reshape<T, NewShape, OriginalKeys>>;
 
     // Implementation
-    public select<NewShape extends Record<keyof NewShape & string, KeyOf<T>>, OriginalKeys extends KeyOf<T>>(
+    public select<NewShape extends Record<keyof NewShape & string, string & keyof T>, OriginalKeys extends string & keyof T>(
         select: NewShape, ...choose: OriginalKeys[]
     ) {
         if (choose.length == 0) {
@@ -75,23 +78,23 @@ export class RDataFrame<T> {
     // provide a little help if desired.
     // WARNING: this permits code injection attacks :<
     public mutateR<V, From = unknown>() {
-        return <N extends string>(name: N, source: KeyOf<T, From>, code: string) =>
+        return <N extends string>(name: N, source: KeyOfType<T, From>, code: string) =>
             this.then<Mutate<T, N, V>>(new MutateNode(name, `${source} |> ${code}`))
     }
 
-    public join_on<S, L extends KeyOf<T | S>>(other: RDataFrame<S>, key: L, kind: JoinType = 'left') {
+    public join_on<S, L extends keyof (T | S) & string>(other: RDataFrame<S>, key: L, kind: string = 'left') {
         return this.then<Join<T, S, L>>(
             new JoinNode(kind, other.derivation, `${key}`)
         )
     }
 
-    public join<S, L extends KeyOf<T>, R extends KeyOf<S>>(other: RDataFrame<S>, leftKey: L, rightKey: R, kind: JoinType = 'left') {
+    public join<S, L extends string & keyof T, R extends string & keyof S>(other: RDataFrame<S>, leftKey: L, rightKey: R, kind: string = 'left') {
         return this.then<Join<T, S>>(
             new JoinNode(kind, other.derivation, `${leftKey} == ${rightKey}`)
         )
     }
 
-    public whereEq<K extends KeyOf<T>, V extends T[K]>(column: K, value: V) {
+    public whereEq<K extends string & keyof T, V extends T[K]>(column: K, value: V) {
         return this.then<WhereEq<T, K, V>>(
             new WhereNode(`${column} == ${this.convertToR(value)}`)
         )

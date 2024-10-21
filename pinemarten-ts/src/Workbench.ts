@@ -2,6 +2,9 @@ import { RDataFrame } from './rlang/dataframe'
 import { REnvironment, RSymbolTable } from './rlang/environment'
 import { RExpression } from './rlang/expparse'
 
+import { KeyOfType, Reshape, Mutate, Join, Where, WhereEq } from './schema_operations'
+import { ProgramNode, PlaintextNode, ReferenceNode, JoinNode, SelectNode, WhereNode, MutateNode, AssignNode } from './ast'
+
 // Idea for these classs:
 // You create a fresh dataframe with a target schema.
 // Then, you can only mutate new columns in the target, or join with tables that have columns in the target.
@@ -40,7 +43,7 @@ import { RExpression } from './rlang/expparse'
 */
 export class Workbench<E extends RSymbolTable, T, U, R> {
     public readonly schema = {} as T // the current progress
-    public readonly universe = {} as U // the universe of target fields
+    public readonly universe = {} as U // the universe of goal fields
     public readonly remaining = {} as R // the remaining fields
 
     public static fresh<U>() {
@@ -62,7 +65,7 @@ export class Workbench<E extends RSymbolTable, T, U, R> {
     }
 
     // Pick one of the current symbols to work from
-    public createSupportDF(fromDF: KeyOf<E>) {
+    public createSupportDF(fromDF: string & keyof E) {
         return (
             <A>(df: RDataFrame<A>) => new SupportWorkbench<E, T, U, R, A>(this.env, df)
         )(this.env.resolveSymbol(fromDF))
@@ -125,7 +128,7 @@ export class DFWorkbench<E extends RSymbolTable, T, U, R> {
     //      df.mutate<TYPE>()('name of new column', 'name of source column', 'arbitrary R expression')
     public mutate<V>() {
         return <
-            N extends KeyOf<R, V>,
+            N extends KeyOfType<R, V>,
             E extends string
         >(
             name: N,
@@ -145,10 +148,10 @@ export class DFWorkbench<E extends RSymbolTable, T, U, R> {
     // WARNING: this permits code injection attacks :<
     public mutateR<V, From = unknown>() {
         return <
-            N extends KeyOf<R>
+            N extends string & keyof R
         >(
             name: N,
-            source: KeyOf<T, From>,
+            source: KeyOfType<T, From>,
             code: string
         ) =>
             this.update(
@@ -156,7 +159,7 @@ export class DFWorkbench<E extends RSymbolTable, T, U, R> {
             )
     }
 
-    public join_on<S extends KeyOf<E>, L extends KeyOf<T | S>>(joinTable: S, key: L, kind: JoinType = 'left') {
+    public join_on<S extends string & keyof E, L extends string & keyof (T | S)>(joinTable: S, key: L, kind: string = 'left') {
         const other = this.env.resolveSymbol(joinTable)
         return this.update(
             other.then<Join<T, S, L>>(
@@ -166,7 +169,7 @@ export class DFWorkbench<E extends RSymbolTable, T, U, R> {
     }
 
     /*
-    public join<S, L extends KeyOf<T>, R extends KeyOf<S>>(other: RDataFrame<S>, leftKey: L, rightKey: R, kind: JoinType = 'left') {
+    public join<S, L extends string & keyof T, R extends string & keyof S>(other: RDataFrame<S>, leftKey: L, rightKey: R, kind: JoinType = 'left') {
         return this.then<Join<T, S>>(
             new JoinNode(kind, other.derivation, `${leftKey} == ${rightKey}`)
         )

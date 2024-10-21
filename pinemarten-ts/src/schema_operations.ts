@@ -1,8 +1,9 @@
+// Types for keeping track of dataframe schema changes.
 
-type KeyOf<T, R = any> = string & keyof {[P in keyof T as T[P] extends R ? P : never]: T[P]}
+export type KeyOfType<T, R> = string & keyof {[P in keyof T as T[P] extends R ? P : never]: T[P]}
 
 // Type for dplyr select().
-type Reshape<
+export type Reshape<
     T, // the source table
     Rename extends { [Field in keyof Rename]: keyof T } = {}, // new names as object keys and original names as values
     Select extends keyof T = never, // union of verbatim fields
@@ -11,7 +12,7 @@ type Reshape<
     & { [K in Select]: T[K]};
 
 // Type for dplyr mutate().
-type Mutate<
+export type Mutate<
     T, // input table
     N extends string, // result name(s), probably should just permit a single literal
     R, // result type
@@ -21,20 +22,18 @@ type Mutate<
 
 // Type for dplyr join().
 // Supports two types of joins: specify shared key, or an explicitly-named key from each table.
-type Join<T, S, By extends keyof (T | S) = never> =
+export type Join<T, S, By extends keyof (T | S) = never> =
     & {[b in By]: T[b]} // include any shared keys
     & Omit<T, (keyof S) | By>
     & Omit<S, (keyof T) | By> // include fields that are in only one table
     & { [K in keyof Omit<(T | S), By> & string as `x.${K}`]: S[K] }
     & { [K in keyof Omit<(T | S), By> & string as `y.${K}`]: S[K] }; // rename duplicate fields
 
-type JoinType = 'inner' | 'outer' | 'left' | 'right'
-
 // Types for dplyr filter()s.
 // This one narrows the actual type of the column to the specified value.
-type WhereEq<T, K extends keyof T, V extends T[K]> = 
+export type WhereEq<T, K extends keyof T, V extends T[K]> = 
     & Omit<T, K>
     & {[P in K]: V};
 
 // General filters don't change the schema.
-type Where<T> = T;
+export type Where<T> = T;

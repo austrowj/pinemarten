@@ -5,7 +5,7 @@ import { RExpression } from './expparse'
 import { KeyOfType, Reshape, Mutate, Join, Where, WhereEq } from '../schema_operations'
 
 type SymbolTable<K> = { [key: string]: K }
-type FunctionSymbols = SymbolTable<(p: Dataframe<any, any, any>) => Dataframe<any, any, any>>
+type FunctionSymbols = SymbolTable<{params: any, results: any}>
 type DataframeSymbols = SymbolTable<{
     schema: any,
     max: any
@@ -44,6 +44,22 @@ export class Environment<
             .forEach((node) => env.program.setAfter(node))
 
         return env
+    }
+
+    // Transition to a dataframe used to define a function
+    public def<P, R>() {
+        return new Dataframe<P, E, P & R, true>(this)
+    }
+
+    // Notes: STRONGLY consider the function-based approach instead of classes.
+    // Each method would return an anonymous struct with the next options defined on it.
+
+    // Save a dataframe's initial requirements and final schema as a named transformation.
+    public bindFunc<K extends string, P, R>(key: K, df: Dataframe<P, any, R, true>) {
+        return new Environment<{
+            dataframes: E['dataframes'],
+            functions: E['functions'] & {K: {params: P, results: R}}
+        }>(this.program)
     }
     
     public loadDf<T>(name: `"${string}"`) { // returns a callable that you use to assign the dataframe to a symbol
@@ -93,7 +109,8 @@ type NameOfSubsetOfAllowedFields<M, E extends EnvironmentSymbols> =
 export class Dataframe<
     T, // the column schema
     E extends EnvironmentSymbols, // the environment that contains this dataframe
-    M = any // permitted names for new columns
+    M = any, // permitted names for new columns
+    F = false // flag that indicates if we are defining a function (this is super hacky)
 > {
     public readonly schema = {} as T
     public readonly max = {} as M
@@ -118,6 +135,10 @@ export class Dataframe<
                 new AssignNode(name, this.program)
             )
         )
+    }
+
+    public defReturn() {
+
     }
 
     public then<S>(extension: ProgramNode) {
@@ -213,7 +234,7 @@ export class Dataframe<
         kind: string = 'left'
     ) {
         return this.then<Join<T, E['dataframes'][S]['schema'], L>>(
-            new JoinNode(kind, new ReferenceNode(other), `${key}`)
+            new JoinNode(kind, this.env.reference(other).program, `${key}`)
         )
     }
 
@@ -228,7 +249,7 @@ export class Dataframe<
         kind: string = 'left'
     ) {
         return this.then<Join<T, S>>(
-            new JoinNode(kind, new ReferenceNode(other), `${leftKey} == ${rightKey}`)
+            new JoinNode(kind, this.env.reference(other).program, `${leftKey} == ${rightKey}`)
         )
     }
 

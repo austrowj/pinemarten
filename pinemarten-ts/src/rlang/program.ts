@@ -19,6 +19,10 @@ type EnvironmentSymbols = {
 export class Environment<
     E extends EnvironmentSymbols
 > {
+    public readonly dataframes = {} as { // for inspecting the dataframe schemas directly
+        [K in keyof E['dataframes']]: E['dataframes'][K]['schema']
+    }
+
     public constructor(
         public readonly program = new ProgramNode()
     ) {}
@@ -46,7 +50,7 @@ export class Environment<
         return <K extends string>(symbol: K) =>
             this.bindDf(
                 symbol,
-                new Dataframe<T, E, T>(
+                new Dataframe<T, E, any>( // fully unlocked
                     this,
                     new ReferenceNode(`load_sdtm(${name})`)
                 )
@@ -69,7 +73,7 @@ export class Environment<
             E['dataframes'][K]['max']     // and with knowledge of permitted new fields
         >(
             this,
-            new ReferenceNode(key) // program starts with a reference to its name
+            new ProgramNode().setAfter(new ReferenceNode(key)) // program starts with a reference to its name
         )
     }
 
@@ -78,9 +82,17 @@ export class Environment<
     }
 }
 
+// This type filters the dataframes in an environment.
+// Those which contain any fields not on M are excluded.
+// Technically, this permits reassigning existing fields, which we probably don't want. (TODO)
+type NameOfSubsetOfAllowedFields<M, E extends EnvironmentSymbols> =
+    string & keyof {
+        [P in keyof E['dataframes'] as M extends E['dataframes'][P]['schema'] ? P : never]: true
+    }
+
 export class Dataframe<
     T, // the column schema
-    E extends EnvironmentSymbols,
+    E extends EnvironmentSymbols, // the environment that contains this dataframe
     M = any // permitted names for new columns
 > {
     public readonly schema = {} as T
@@ -95,7 +107,7 @@ export class Dataframe<
     public save<K extends string>(name: K) {
         return new Environment<{
             dataframes: Omit<E['dataframes'], K> & { // set the entry for the new name to this table
-                name: {
+                [P in K]: {
                     schema: T,
                     max: M
                 }
@@ -152,15 +164,14 @@ export class Dataframe<
         }
     }
 
-    /*
     // Function to construct mutators for the different types.
     // I couldn't figure out how to make the return type generic :<
     //
     // This function (and mutateR below) returns a callback so you have to call it like:
     //      df.mutate<TYPE>()('name of new column', 'name of source column', 'arbitrary R expression')
-    public mutate<V>() {
+    public mutator<V>() {
         return <
-            N extends string,
+            N extends keyof Omit<M, keyof T> & KeyOfType<M, V>,
             E extends string
         >(
             name: N,
@@ -172,9 +183,9 @@ export class Dataframe<
     }
 
     // Convenience methods to avoid the awkward double-call syntax.
-    public mutateBoolean = this.mutate<boolean>()
-    public mutateNumeric = this.mutate<number>()
-    public mutateString = this.mutate<string>()
+    public mutateBoolean = this.mutator<boolean>()
+    public mutateNumeric = this.mutator<number>()
+    public mutateString = this.mutator<string>()
 
     // Escape hatch for writing arbitrary R code in mutates.
     // You provide the type of column created manually, and the code inside will not be type checked.
@@ -182,19 +193,42 @@ export class Dataframe<
     // provide a little help if desired.
     // WARNING: this permits code injection attacks :<
     public mutateR<V, From = unknown>() {
-        return <N extends string>(name: N, source: KeyOfType<T, From>, code: string) =>
-            this.then<Mutate<T, N, V>>(new MutateNode(name, `${source} |> ${code}`))
+        return <
+                N extends string & keyof Omit<M, keyof T>
+            >(
+                name: N,
+                source: KeyOfType<T, From>,
+                code: string
+            ) =>
+                this.then<Mutate<T, N, V>>(new MutateNode(name, `${source} |> ${code}`))
     }
 
-    public join_on<S, L extends keyof (T | S) & string>(other: RDataFrame<S>, key: L, kind: string = 'left') {
-        return this.then<Join<T, S, L>>(
-            new JoinNode(kind, other.derivation, `${key}`)
+    // "join"s are only allowed on environment-bound dataframes (no nesting)
+    public join_on<
+        S extends NameOfSubsetOfAllowedFields<M, E>,
+        L extends keyof (T | E['dataframes'][S]['schema']) & string
+    >(
+        other: S,
+        key: L,
+        kind: string = 'left'
+    ) {
+        return this.then<Join<T, E['dataframes'][S]['schema'], L>>(
+            new JoinNode(kind, new ReferenceNode(other), `${key}`)
         )
     }
 
-    public join<S, L extends string & keyof T, R extends string & keyof S>(other: RDataFrame<S>, leftKey: L, rightKey: R, kind: string = 'left') {
+    public join<
+        S extends NameOfSubsetOfAllowedFields<M, E>,
+        L extends string & keyof T,
+        R extends string & keyof E['dataframes'][S]['schema']
+    >(
+        other: S,
+        leftKey: L,
+        rightKey: R,
+        kind: string = 'left'
+    ) {
         return this.then<Join<T, S>>(
-            new JoinNode(kind, other.derivation, `${leftKey} == ${rightKey}`)
+            new JoinNode(kind, new ReferenceNode(other), `${leftKey} == ${rightKey}`)
         )
     }
 
@@ -216,5 +250,4 @@ export class Dataframe<
         if (typeof x === 'boolean') { return x ? 'TRUE' : 'FALSE' }
         return x
     }
-    */
 }

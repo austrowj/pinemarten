@@ -1,5 +1,5 @@
 import { RDataFrame } from './dataframe'
-import { ProgramNode, ReferenceNode, AssignNode, printProgram } from '../ast'
+import { ProgramNode, ReferenceNode, AssignNode, printProgram } from './ast'
 
 export type RSymbolTable = {[s: string]: RDataFrame<any>} // can only bind RDataFrames
 

@@ -3,7 +3,7 @@ import { REnvironment, RSymbolTable } from './rlang/environment'
 import { RExpression } from './rlang/expparse'
 
 import { KeyOfType, Reshape, Mutate, Join, Where, WhereEq } from './schema_operations'
-import { ProgramNode, PlaintextNode, ReferenceNode, JoinNode, SelectNode, WhereNode, MutateNode, AssignNode } from './ast'
+import { ProgramNode, PlaintextNode, ReferenceNode, JoinNode, SelectNode, WhereNode, MutateNode, AssignNode } from './rlang/ast'
 
 // Idea for these classs:
 // You create a fresh dataframe with a target schema.

@@ -1,7 +1,7 @@
 import { RExpression } from './expparse'
 
 import { KeyOfType, Reshape, Mutate, Join, Where, WhereEq } from '../schema_operations'
-import { ProgramNode, PlaintextNode, ReferenceNode, JoinNode, SelectNode, WhereNode, MutateNode } from '../ast'
+import { ProgramNode, PlaintextNode, ReferenceNode, JoinNode, SelectNode, WhereNode, MutateNode } from './ast'
 
 export class RDataFrame<T> {
     public readonly schema = {} as T // only used to obtain type info and doesn't actually hold data

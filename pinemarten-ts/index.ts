@@ -1,6 +1,8 @@
 export { Workbench, DFWorkbench } from "./src/Workbench";
 export { ADaMTestEnvironment, REnvironment } from "./src/rlang/environment"
 
+export { Environment, Dataframe } from './src/rlang/program'
+
 export class TestEnv<T> {
 
     public static make() { return new TestEnv<{}>() }

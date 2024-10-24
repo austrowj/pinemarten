@@ -46,7 +46,7 @@ export class AssignNode extends ProgramNode {
     }
 
     public rep() {
-        return `${this.name} <- `
+        return `${this.name} <-`
     }
 }
 
@@ -139,6 +139,7 @@ export class WhereNode extends ProgramNode {
     }
 }
 
+// sorry this is so gross
 export function printProgram(root: ProgramNode, depth: number = 0): string {
     const tab = '    '.repeat(depth)
     const res = 
@@ -147,18 +148,19 @@ export function printProgram(root: ProgramNode, depth: number = 0): string {
             : tab + root.rep() + (
                 root.rep() == null || root.children.length == 0
                     ? '\n'
-                    : '(\n'
+                    : root.children.length > 1 ? ' (\n' : ' ' // if there is only one child, put it on the same line
             )
         )
         + root.children
             .map((x) => printProgram(x,
                 root.rep() == null
                     ? depth
-                    : depth+1
+                    : depth + (root.children.length > 1 ? 1 : 0)
             ))
             .reduce((total, x) => total + x, '')
         + (root.rep() == null || root.children.length == 0
             ? ''
-            : tab + ')\n')
+            : tab + (root.children.length > 1 ? ')\n' : '')
+        )
     return res
 }

@@ -26,8 +26,8 @@ export type Join<T, S, By extends keyof (T | S) = never> =
     & {[b in By]: T[b]} // include any shared keys
     & Omit<T, (keyof S) | By>
     & Omit<S, (keyof T) | By> // include fields that are in only one table
-    & { [K in keyof Omit<(T | S), By> & string as `x.${K}`]: S[K] }
-    & { [K in keyof Omit<(T | S), By> & string as `y.${K}`]: S[K] }; // rename duplicate fields
+    & { [K in keyof Omit<(T | S), By> & string as `${K}.x`]: S[K] }
+    & { [K in keyof Omit<(T | S), By> & string as `${K}.y`]: S[K] }; // rename duplicate fields
 
 // Types for dplyr filter()s.
 // This one narrows the actual type of the column to the specified value.

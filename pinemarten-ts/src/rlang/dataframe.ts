@@ -54,9 +54,9 @@ export class RDataFrame<T> {
     //
     // This function (and mutateR below) returns a callback so you have to call it like:
     //      df.mutate<TYPE>()('name of new column', 'name of source column', 'arbitrary R expression')
-    public mutate<V>() {
+    public mutator<V, U = any>() {
         return <
-            N extends string,
+            N extends keyof Omit<U, keyof T> & KeyOfType<U, V>,
             E extends string
         >(
             name: N,
@@ -68,9 +68,9 @@ export class RDataFrame<T> {
     }
 
     // Convenience methods to avoid the awkward double-call syntax.
-    public mutateBoolean = this.mutate<boolean>()
-    public mutateNumeric = this.mutate<number>()
-    public mutateString = this.mutate<string>()
+    public mutateBoolean = this.mutator<boolean>()
+    public mutateNumeric = this.mutator<number>()
+    public mutateString = this.mutator<string>()
 
     // Escape hatch for writing arbitrary R code in mutates.
     // You provide the type of column created manually, and the code inside will not be type checked.

@@ -64,6 +64,12 @@ export class ADaMTestEnvironment<E extends RSymbolTable> extends REnvironment<E>
         )
     }
 
+    public static loadAdamDF<T>(name: `"${string}"`) {
+        return new RDataFrame<T>(
+            new ReferenceNode(`load_adam(${name})`)
+        )
+    }
+
     public static save<E extends RSymbolTable>(env: REnvironment<E>, df: string & keyof E) {
         env.program.setAfter(new ReferenceNode(`${df} |> save("${df}")`))
     }

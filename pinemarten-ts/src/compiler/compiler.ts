@@ -36,6 +36,10 @@ function transpileTsToR(fileName: string) {
                 handleBlock(node as ts.Block);
                 break;
 
+            case ts.SyntaxKind.ImportDeclaration:
+                // Do nothing.
+                break;
+
             default:
                 ts.forEachChild(node, visit);
         }
@@ -103,7 +107,8 @@ function transpileTsToR(fileName: string) {
             return expr.expression ? `return(${printExpression(expr.expression)})` : `return()`;
 
         } else {
-            return "UNKNOWN_EXPRESSION";
+            //return "UNKNOWN_EXPRESSION";
+            throw Error(`Unsupported syntax near "${expr.getFullText(sourceFile).trim()}"`)
         }
     }
     

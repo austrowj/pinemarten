@@ -31,12 +31,12 @@ class Dataframe<T> {
 
 const df = new Dataframe<{id: number, name: string}>();
 
-function test_transform<T extends {id: number}>(x: T) { return {myid: x.id}}
+function test_transform<T extends {id: number}>(x: T) {return x.id + 1}
 const count = 3;
 
 const df2 = df
     .as(x => ({
-        id2: x.id,
+        id2: test_transform(x),
         n: x.name,
         mystr: x.name.repeat(count)
     }))

@@ -1,5 +1,10 @@
 import * as ts from "typescript";
 
+/*
+    Skip down to 'RPrinter' for the stuff that is used.
+    The rest is a graveyard of examples.
+*/
+
 function compile(fileNames: string[], options: ts.CompilerOptions): void {
   // Create a Program with an in-memory emit
     let createdFiles: Record<string, string> = {}
@@ -72,6 +77,9 @@ function extract(file: string, identifiers: string[]): void {
         }
 }
 
+/*
+    This is the class that actually does stuff.
+*/
 class RPrinter {
     private line: string = "";
     private tab: Number = 0;
@@ -79,16 +87,27 @@ class RPrinter {
     public constructor(public sourceFile: ts.SourceFile) {}
 
     public printNode(node: ts.Node): void {
-        console.log(`Visiting:${node.getFullText(this.sourceFile)}\n`);
+        var node_type = 'UNRECOGNIZED';
+        if (ts.isFunctionDeclaration(node)) {
+            node_type = 'FUNCTION DECLARATION';
+        } else if (ts.isVariableDeclaration(node)) {
+            node_type = 'VARIABLE DECLARATION';
+        } else if (ts.isPropertyAccessExpression(node)) {
+            node_type = 'PROPERTY ACCESS EXPRESSION';
+        }
 
+
+        /*
         if (ts.isVariableStatement(node)) {
             node.declarationList.declarations.forEach((val) => {
                 this.line += val.name
                 this.write()
             })
         } else {
-            ts.forEachChild(node, (child) => this.printNode(child))
-        }
+        }*/
+       
+        console.log(`${node_type}:\n ${node.getFullText(this.sourceFile)}\n`);
+        ts.forEachChild(node, (child) => this.printNode(child))
     }
 
     private write() {

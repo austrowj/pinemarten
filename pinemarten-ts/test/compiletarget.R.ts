@@ -1,9 +1,16 @@
+import * as R from '../src/compiler/rlang';
 
 function f(a: number, c: string): string {
-    return c.repeat(a);
+    return c;
+}
+
+function g(a: number, b: number): number {
+    const r = a + b;
+    return r;
 }
 
 const x = 3;
 const y = f(x, "hello");
+const z = g(4, x);
 
-console.log(x);
+R.print(x);

@@ -25,11 +25,21 @@ class Dataframe<T> {
     public with<S>(mutator: (t: T) => S) {
         return new Dataframe<Mutate<T, S>>();
     }
+
+    /* Joins */
+
+    public join_on<S, L extends keyof (T | S) & string>(other: Dataframe<S>, key: L, kind: string = 'left') {
+        return new Dataframe<Join<T, S, L>>();
+    }
+
+    public join<S, L extends string & keyof T, R extends KeyOfType<S, T[L]>>(other: Dataframe<S>, leftKey: L, rightKey: R, kind: string = 'left') {
+        return new Dataframe<Join<T, S>>();
+    }
 }
 
 /* Testing code */
 
-const df = new Dataframe<{id: number, name: string}>();
+const df = new Dataframe<{id: number, name: string, zz: boolean}>();
 
 function test_transform<T extends {id: number}>(x: T) {return x.id + 1}
 const count = 3;
@@ -38,13 +48,20 @@ const df2 = df
     .as(x => ({
         id2: test_transform(x),
         n: x.name,
-        mystr: x.name.repeat(count)
+        mystr: x.name.repeat(count),
+        zz: x.zz
     }))
-    .with(x => ({
-        derived: x.mystr.lastIndexOf('g'),
-        n: 1
-    }))
+    .with(x => {
+        const w = 7;
+        return {
+            derived: x.mystr.lastIndexOf('g'),
+            n: w
+        };
+    })
     .with(x => ({test: x.n * 0 as 0}))
 ;
+
+df.with(x => ({id2: x.id, mystr: ''})).join_on(df2, 'id2').schema;
+df.join(df2, 'id', 'test').schema;
 
 df2.schema;

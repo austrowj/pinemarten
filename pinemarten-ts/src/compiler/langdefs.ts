@@ -35,6 +35,14 @@ class Dataframe<T> {
     public join<S, L extends string & keyof T, R extends KeyOfType<S, T[L]>>(other: Dataframe<S>, leftKey: L, rightKey: R, kind: string = 'left') {
         return new Dataframe<Join<T, S>>();
     }
+
+    /* Wheres */
+    
+    public whereEq<K extends string & keyof T, V extends T[K]>(column: K, value: V) {
+        return new Dataframe<WhereEq<T, K, V>>();
+    }
+
+    public where(predicate: (t: T) => boolean) {return this;} // completely arbitrary predicate
 }
 
 /* Testing code */
@@ -60,8 +68,10 @@ const df2 = df
     })
     .with(x => ({test: x.n * 0 as 0}))
 ;
+df2.schema;
+
+df2.whereEq('n', 1).schema; // type of n is now literal '1'
+df2.where(x => x.n == 1 && x.mystr.endsWith('.xlsx')).schema; // column schema is unchanged
 
 df.with(x => ({id2: x.id, mystr: ''})).join_on(df2, 'id2').schema;
 df.join(df2, 'id', 'test').schema;
-
-df2.schema;

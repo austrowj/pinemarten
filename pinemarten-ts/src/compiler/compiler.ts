@@ -103,7 +103,8 @@ function transpileTsToR(fileName: string) {
             return `${funcName}(${args})`;
         
         } else if (ts.isPropertyAccessExpression(expr)) {
-            return `<PROP>${expr.getText()}</PROP>`; // TODO
+            const property_name = (expr.name as ts.Identifier).text;
+            return `${printExpression(expr.expression)}$${property_name}`; // TODO: a less hacky version
 
         } else if (ts.isReturnStatement(expr)) {
             // Not directly an Expression, but if needed

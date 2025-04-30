@@ -101,6 +101,9 @@ function transpileTsToR(fileName: string) {
             const funcName = printExpression(expr.expression);
             const args = expr.arguments.map(printExpression).join(", ");
             return `${funcName}(${args})`;
+        
+        } else if (ts.isPropertyAccessExpression(expr)) {
+            return `<PROP>${expr.getText()}</PROP>`; // TODO
 
         } else if (ts.isReturnStatement(expr)) {
             // Not directly an Expression, but if needed
@@ -108,7 +111,7 @@ function transpileTsToR(fileName: string) {
 
         } else {
             //return "UNKNOWN_EXPRESSION";
-            throw Error(`Unsupported syntax near "${expr.getFullText(sourceFile).trim()}"`)
+            throw Error(`Unsupported syntax near "${expr.getFullText(sourceFile).trim()}": kind ${expr.kind}`);
         }
     }
     
@@ -117,5 +120,5 @@ function transpileTsToR(fileName: string) {
     return output.join("\n");
 }
 
-const result = transpileTsToR('test/compiletarget.R.ts');
+const result = transpileTsToR('test/langtest.R.ts');
 console.log(result);

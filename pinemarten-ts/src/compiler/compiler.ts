@@ -32,7 +32,7 @@ function compileToR(filename: string) {
 
     const program = ts.createProgram([filename], {});
     const sourceFile = program.getSourceFile(filename);
-    //const typeChecker = program.getTypeChecker();
+    const typeChecker = program.getTypeChecker();
 
     if (sourceFile === undefined) {
         throw Error("Source file not found.");
@@ -170,21 +170,34 @@ function compileToR(filename: string) {
             return `${funcName}(${args})`;
 
         } else if (ts.isArrowFunction(expr)) {
-            // Right now, all arrow functions are data-masks.
-            return asDataMask(expr);
+            // Turn arrow functions into anonymous functions.
+            const parameters = expr.parameters.map(x => x.name.getText()).join(', '); // does not handle defaults or anything
+            //const body = printExpression(expr.body) // have to rearrange the entire compiler to handle this correctly
+            return `function(${parameters}) {}`;
+
+        // TODO: handle object literals (are the always dataframes? are they parameter lists? ...)
         
         } else if (ts.isPropertyAccessExpression(expr)) {
 
             // First, check for local data context.
             // If not, then traverse as normal.
-            console.log(`<CONTEXT>Local dataframe name == "${local_df_name}"</CONTEXT>`);
-            const lhs = ts.isIdentifier(expr.expression) && expr.expression.text === local_df_name
+            /*const lhs = ts.isIdentifier(expr.expression) && expr.expression.text === local_df_name
                 ? ''
                 : `${printExpression(expr.expression, local_df_name)} |> `
-            ;
+            ;*/
 
             const property_name = (expr.name as ts.Identifier).text;
-            return `${lhs}${property_name}`; // TODO: a less hacky version
+            
+            //return `${lhs}${property_name}`; // TODO: a less hacky version
+
+            // Just do simple thing for now, no syntax magic.
+            // Functions get a pipe, everything else gets an access operator.
+            // ASIDE: It's extremely convoluted to check if the property is a Callable...
+            const operator = typeChecker.getSignaturesOfType(typeChecker.getTypeAtLocation(expr.name), ts.SignatureKind.Call).length > 0
+                ? ' |> '
+                : '$'
+            ;
+            return `${printExpression(expr.expression, local_df_name)}${operator}${property_name}`;
 
         } else if (ts.isReturnStatement(expr)) {
             // Not directly an Expression, but if needed

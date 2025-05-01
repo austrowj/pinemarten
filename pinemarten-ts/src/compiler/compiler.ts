@@ -116,44 +116,15 @@ function compileToR(filename: string) {
             visit(statement);
         });
     }
-
-    /*
-        Understands a particular AST structure as a data mask.
-    */
-    function asDataMask(node: ts.ArrowFunction) {
-        // Guard against compile errors
-        if (node.parameters.length != 1) {
-            throw Error(`Expected data-mask but number of parameters is not 1: "${node.getText()}".`);
-        }
-        if (!ts.isParenthesizedExpression(node.body)) {
-            throw Error(`Expected data-mask but got "${node.getText()}" instead of a ParenthesizedExpression.`);
-        }
-        if (!ts.isObjectLiteralExpression(node.body.expression)) {
-            throw Error(`Expected data-mask but got "${node.getText()}" instead of an ObjectLiteralExpression.`);
-        }
-
-        const dfName = (node.parameters[0].name as ts.Identifier).text;
-
-        return node.body.expression.properties.map(x => {
-
-            if (!ts.isPropertyAssignment(x)) {
-                throw Error(`Invalid statement in data-mask: "${x.getText()}".`);
-            }
-            const name = (x.name as ts.Identifier).text;
-            const valueText = printExpression(x.initializer, dfName);
-            return `${name} = ${valueText}`;
-
-        }).join(', ');
-    }
     
-    function printExpression(expr: ts.Expression, local_df_name?: string): string {
+    function printExpression(expr: ts.Expression): string {
 
         if (ts.isBinaryExpression(expr)) {
             // Always adds spaces on each side of a binary operator.
-            return `${printExpression(expr.left, local_df_name)} ${expr.operatorToken.getText()} ${printExpression(expr.right, local_df_name)}`;
+            return `${printExpression(expr.left)} ${expr.operatorToken.getText()} ${printExpression(expr.right)}`;
         
         } else if (ts.isParenthesizedExpression(expr)) {
-            return `(${printExpression(expr.expression, local_df_name)})`;
+            return `(${printExpression(expr.expression)})`;
 
         } else if (ts.isIdentifier(expr)) {
             return expr.text;
@@ -165,8 +136,8 @@ function compileToR(filename: string) {
             return `"${expr.text}"`;
 
         } else if (ts.isCallExpression(expr)) {
-            const funcName = printExpression(expr.expression, local_df_name);
-            const args = expr.arguments.map(x => printExpression(x, local_df_name)).join(", ");
+            const funcName = printExpression(expr.expression);
+            const args = expr.arguments.map(x => printExpression(x)).join(", ");
             return `${funcName}(${args})`;
 
         } else if (ts.isArrowFunction(expr)) {
@@ -179,16 +150,7 @@ function compileToR(filename: string) {
         
         } else if (ts.isPropertyAccessExpression(expr)) {
 
-            // First, check for local data context.
-            // If not, then traverse as normal.
-            /*const lhs = ts.isIdentifier(expr.expression) && expr.expression.text === local_df_name
-                ? ''
-                : `${printExpression(expr.expression, local_df_name)} |> `
-            ;*/
-
             const property_name = (expr.name as ts.Identifier).text;
-            
-            //return `${lhs}${property_name}`; // TODO: a less hacky version
 
             // Just do simple thing for now, no syntax magic.
             // Functions get a pipe, everything else gets an access operator.
@@ -197,11 +159,11 @@ function compileToR(filename: string) {
                 ? ' |> '
                 : '$'
             ;
-            return `${printExpression(expr.expression, local_df_name)}${operator}${property_name}`;
+            return `${printExpression(expr.expression)}${operator}${property_name}`;
 
         } else if (ts.isReturnStatement(expr)) {
             // Not directly an Expression, but if needed
-            return expr.expression ? `return(${printExpression(expr.expression, local_df_name)})` : `return()`;
+            return expr.expression ? `return(${printExpression(expr.expression)})` : `return()`;
 
         } else {
             //return "UNKNOWN_EXPRESSION";

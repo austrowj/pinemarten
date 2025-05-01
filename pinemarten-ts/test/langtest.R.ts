@@ -4,17 +4,19 @@ import {Dataframe} from '../src/compiler/langdefs';
 
 function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
 
-    function test_transform<T extends { id: number }>(x: T) { return x.id + 1 }
+    function test_transform<T extends { id: number }>(x: T) { return 0 + 1 }
     const count = 3;
 
-    /*
+    count.toLocaleString()//.repeat(3*(1+2));
+
     const df2 = df
         .as(x => ({
-            id2: test_transform(x),
+            id2: 3,//test_transform(x),
             n: x.name,
             mystr: x.name.repeat(count),
             zz: x.zz
         }))
+    /*
         .with(x => {
             const w = 7;
             return {

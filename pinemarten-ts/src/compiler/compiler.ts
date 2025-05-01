@@ -1,9 +1,42 @@
 import * as ts from "typescript";
-import * as fs from "fs";
 
-function transpileTsToR(fileName: string) {
-    const sourceCode = fs.readFileSync(fileName, "utf8");
-    const sourceFile = ts.createSourceFile(fileName, sourceCode, ts.ScriptTarget.Latest, true);
+function getLanguageDefinitionTypes() {
+
+    const langdefsFile = "langdefs.ts";
+    const program = ts.createProgram([langdefsFile], {});
+    const checker = program.getTypeChecker();
+    const sourceFile = program.getSourceFile(langdefsFile);
+    if (!sourceFile) throw new Error("Language definitions file not found.");
+
+    let typeDataframe: ts.Type | undefined;
+
+    ts.forEachChild(sourceFile, function findMyClass(node) {
+        if (ts.isClassDeclaration(node) && node.name?.text === "Dataframe") {
+            const symbol = checker.getSymbolAtLocation(node.name);
+            if (symbol) {
+                typeDataframe = checker.getDeclaredTypeOfSymbol(symbol);
+            }
+        }
+    });
+
+    if (typeDataframe === undefined) {
+        throw new Error(`"Dataframe" class not defined in language definitions file.`);
+    }
+
+    return typeDataframe;
+}
+
+function compileToR(filename: string) {
+
+    //const typeDataframe = getLanguageDefinitionTypes();
+
+    const program = ts.createProgram([filename], {});
+    const sourceFile = program.getSourceFile(filename);
+    //const typeChecker = program.getTypeChecker();
+
+    if (sourceFile === undefined) {
+        throw Error("Source file not found.");
+    }
     
     let output: string[] = [];
     let indentLevel = 0;
@@ -11,6 +44,7 @@ function transpileTsToR(fileName: string) {
     function emit(line: string) {
         const indent = "    ".repeat(indentLevel); // 4 spaces per indent
         output.push(indent + line);
+        console.log(indent + line);
     }
     
     function visit(node: ts.Node) {
@@ -82,11 +116,44 @@ function transpileTsToR(fileName: string) {
             visit(statement);
         });
     }
+
+    /*
+        Understands a particular AST structure as a data mask.
+    */
+    function asDataMask(node: ts.ArrowFunction) {
+        // Guard against compile errors
+        if (node.parameters.length != 1) {
+            throw Error(`Expected data-mask but number of parameters is not 1: "${node.getText()}".`);
+        }
+        if (!ts.isParenthesizedExpression(node.body)) {
+            throw Error(`Expected data-mask but got "${node.getText()}" instead of a ParenthesizedExpression.`);
+        }
+        if (!ts.isObjectLiteralExpression(node.body.expression)) {
+            throw Error(`Expected data-mask but got "${node.getText()}" instead of an ObjectLiteralExpression.`);
+        }
+
+        const dfName = (node.parameters[0].name as ts.Identifier).text;
+
+        return node.body.expression.properties.map(x => {
+
+            if (!ts.isPropertyAssignment(x)) {
+                throw Error(`Invalid statement in data-mask: "${x.getText()}".`);
+            }
+            const name = (x.name as ts.Identifier).text;
+            const valueText = printExpression(x.initializer, dfName);
+            return `${name} = ${valueText}`;
+
+        }).join(', ');
+    }
     
-    function printExpression(expr: ts.Expression): string {
+    function printExpression(expr: ts.Expression, local_df_name?: string): string {
 
         if (ts.isBinaryExpression(expr)) {
-            return `${printExpression(expr.left)} ${expr.operatorToken.getText()} ${printExpression(expr.right)}`;
+            // Always adds spaces on each side of a binary operator.
+            return `${printExpression(expr.left, local_df_name)} ${expr.operatorToken.getText()} ${printExpression(expr.right, local_df_name)}`;
+        
+        } else if (ts.isParenthesizedExpression(expr)) {
+            return `(${printExpression(expr.expression, local_df_name)})`;
 
         } else if (ts.isIdentifier(expr)) {
             return expr.text;
@@ -98,17 +165,30 @@ function transpileTsToR(fileName: string) {
             return `"${expr.text}"`;
 
         } else if (ts.isCallExpression(expr)) {
-            const funcName = printExpression(expr.expression);
-            const args = expr.arguments.map(printExpression).join(", ");
+            const funcName = printExpression(expr.expression, local_df_name);
+            const args = expr.arguments.map(x => printExpression(x, local_df_name)).join(", ");
             return `${funcName}(${args})`;
+
+        } else if (ts.isArrowFunction(expr)) {
+            // Right now, all arrow functions are data-masks.
+            return asDataMask(expr);
         
         } else if (ts.isPropertyAccessExpression(expr)) {
+
+            // First, check for local data context.
+            // If not, then traverse as normal.
+            console.log(`<CONTEXT>Local dataframe name == "${local_df_name}"</CONTEXT>`);
+            const lhs = ts.isIdentifier(expr.expression) && expr.expression.text === local_df_name
+                ? ''
+                : `${printExpression(expr.expression, local_df_name)} |> `
+            ;
+
             const property_name = (expr.name as ts.Identifier).text;
-            return `${printExpression(expr.expression)}$${property_name}`; // TODO: a less hacky version
+            return `${lhs}${property_name}`; // TODO: a less hacky version
 
         } else if (ts.isReturnStatement(expr)) {
             // Not directly an Expression, but if needed
-            return expr.expression ? `return(${printExpression(expr.expression)})` : `return()`;
+            return expr.expression ? `return(${printExpression(expr.expression, local_df_name)})` : `return()`;
 
         } else {
             //return "UNKNOWN_EXPRESSION";
@@ -121,5 +201,5 @@ function transpileTsToR(fileName: string) {
     return output.join("\n");
 }
 
-const result = transpileTsToR('test/langtest.R.ts');
+const result = compileToR('test/langtest.R.ts');
 console.log(result);

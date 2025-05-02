@@ -47,104 +47,103 @@ function compileToR(filename: string) {
         console.log(indent + line);
     }
     
-    function visit(node: ts.Node) {
+    function visit(node: ts.Node): string[] {
+
+        if (ts.isExpression(node)) return handleExpression(node);
+
         switch (node.kind) {
 
+            case ts.SyntaxKind.SourceFile:
+            case ts.SyntaxKind.SyntaxList:
+                return node.getChildren().map(visit).reduce((x, y) => x.concat(y), []);
+
             case ts.SyntaxKind.VariableStatement:
-                handleVariableStatement(node as ts.VariableStatement);
-                break;
+                return handleVariableStatement(node as ts.VariableStatement);
 
             case ts.SyntaxKind.FunctionDeclaration:
-                handleFunctionDeclaration(node as ts.FunctionDeclaration);
-                break;
+                return handleFunctionDeclaration(node as ts.FunctionDeclaration);
 
             case ts.SyntaxKind.ExpressionStatement:
-                handleExpressionStatement(node as ts.ExpressionStatement);
-                break;
+                return handleExpressionStatement(node as ts.ExpressionStatement);
             
             case ts.SyntaxKind.ReturnStatement:
-                handleReturnStatement(node as ts.ReturnStatement);
-                break;
+                return handleReturnStatement(node as ts.ReturnStatement);
 
             case ts.SyntaxKind.Block:
-                handleBlock(node as ts.Block);
-                break;
+                return handleBlock(node as ts.Block);
 
             case ts.SyntaxKind.ImportDeclaration:
-                // Do nothing.
-                break;
+            case ts.SyntaxKind.EndOfFileToken:
+                return [];
 
             default:
-                ts.forEachChild(node, visit);
+                throw Error(`Unsupported syntax near "${node.getFullText(sourceFile).trim()}": kind ${ts.SyntaxKind[node.kind]}`);
         }
     }
     
     function handleVariableStatement(node: ts.VariableStatement) {
-        node.declarationList.declarations.forEach(decl => {
+        return node.declarationList.declarations.map(decl => {
             const name = (decl.name as ts.Identifier).text;
-            const initializer = decl.initializer ? printExpression(decl.initializer) : "NULL";
-            emit(`${name} <- ${initializer}`);
+            const initializer = decl.initializer ? handleExpression(decl.initializer) : "NULL";
+            return `${name} <- ${initializer}`;
         });
     }
     
     function handleFunctionDeclaration(node: ts.FunctionDeclaration) {
         const name = node.name?.text;
         const params = node.parameters.map(p => (p.name as ts.Identifier).text).join(", ");
-        emit(`${name} <- function(${params}) {`);
-        indentLevel++;
-        if (node.body) {
-            visit(node.body); // This will hit the Block
-        }
-        indentLevel--;
-        emit(`}`);
+        return [`${name} <- function(${params}) {`].concat(node.body ? visit(node.body) : []).concat('}');
     }
     
     function handleExpressionStatement(node: ts.ExpressionStatement) {
-        emit(printExpression(node.expression));
+        return handleExpression(node.expression);
     }
 
     function handleReturnStatement(node: ts.ReturnStatement) {
         if (node.expression === undefined) {
-            emit('return()');
+            return ['return()'];
         } else {
-            emit(`return(${printExpression(node.expression)})`)
+            return [`return(`].concat(handleExpression(node.expression)).concat([')']);
         }
     }
     
     function handleBlock(node: ts.Block) {
-        node.statements.forEach(statement => {
-            visit(statement);
-        });
+        return node.statements.map(statement => visit(statement)).reduce((x, y) => x.concat(y), []);
     }
     
-    function printExpression(expr: ts.Expression): string {
+    function handleExpression(expr: ts.Expression): string[] {
 
         if (ts.isBinaryExpression(expr)) {
             // Always adds spaces on each side of a binary operator.
-            return `${printExpression(expr.left)} ${expr.operatorToken.getText()} ${printExpression(expr.right)}`;
+            const left = handleExpression(expr.left);
+            const right = handleExpression(expr.right);
+            const op = [expr.operatorToken.getText()];
+
+            return left.concat(op).concat(right);
         
         } else if (ts.isParenthesizedExpression(expr)) {
-            return `(${printExpression(expr.expression)})`;
+            const inner = handleExpression(expr.expression);
+            return ['('].concat(inner).concat([')']);
 
         } else if (ts.isIdentifier(expr)) {
-            return expr.text;
+            return [expr.text];
 
         } else if (ts.isNumericLiteral(expr)) {
-            return expr.text;
+            return [expr.text];
 
         } else if (ts.isStringLiteral(expr)) {
-            return `"${expr.text}"`;
+            return [`"${expr.text}"`];
 
         } else if (ts.isCallExpression(expr)) {
-            const funcName = printExpression(expr.expression);
-            const args = expr.arguments.map(x => printExpression(x)).join(", ");
-            return `${funcName}(${args})`;
+            const funcName = handleExpression(expr.expression);
+            const args = expr.arguments.map(x => handleExpression(x)).join(", ");
+            return [`${funcName}(${args})`];
 
         } else if (ts.isArrowFunction(expr)) {
             // Turn arrow functions into anonymous functions.
             const parameters = expr.parameters.map(x => x.name.getText()).join(', '); // does not handle defaults or anything
             //const body = printExpression(expr.body) // have to rearrange the entire compiler to handle this correctly
-            return `function(${parameters}) {}`;
+            return [`function(${parameters}) {`].concat(visit(expr.body)).concat(['}']);
 
         // TODO: handle object literals (are the always dataframes? are they parameter lists? ...)
         
@@ -159,21 +158,21 @@ function compileToR(filename: string) {
                 ? ' |> '
                 : '$'
             ;
-            return `${printExpression(expr.expression)}${operator}${property_name}`;
+            return [`${handleExpression(expr.expression)}${operator}${property_name}`];
 
         } else if (ts.isReturnStatement(expr)) {
             // Not directly an Expression, but if needed
-            return expr.expression ? `return(${printExpression(expr.expression)})` : `return()`;
+            return expr.expression ? ['return('].concat(handleExpression(expr.expression)).concat([')']) : ['return()'];
+        
+        } else if (ts.isObjectLiteralExpression(expr)) {
+            return [expr.getFullText()]; // TODO: unpack this properly
 
         } else {
-            //return "UNKNOWN_EXPRESSION";
-            throw Error(`Unsupported syntax near "${expr.getFullText(sourceFile).trim()}": kind ${expr.kind}`);
+            throw Error(`Unsupported syntax near "${expr.getFullText(sourceFile).trim()}": kind ${ts.SyntaxKind[expr.kind]}`);
         }
     }
     
-    visit(sourceFile);
-    
-    return output.join("\n");
+    return visit(sourceFile).join('\n');
 }
 
 const result = compileToR('test/langtest.R.ts');

@@ -8,7 +8,7 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
     const count = 3;
 
     count.toLocaleString().repeat(3*(1+2));
-
+/*
     const df2 = df
         .as(x => ({
             id2: test_transform(x),

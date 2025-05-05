@@ -27,6 +27,11 @@ interface RBinaryExpression {
     right: RExpression;
 }
 
+interface RParenthesizedExpression {
+    type: 'ParenthesizedExpression';
+    inner: RStatement | RExpression;
+}
+
 interface RLiteral {
     type: 'Literal';
     text: string;
@@ -71,7 +76,7 @@ interface REmptyStatement {
     type: 'Empty';
 }
 
-type RExpression = RLiteral | RIdentifier | RBinaryExpression | RFunctionCall | RPropertyAccess | RArrowFunction;
+type RExpression = RLiteral | RIdentifier | RBinaryExpression | RFunctionCall | RPropertyAccess | RArrowFunction | RParenthesizedExpression;
 type RStatement = RVariableDeclaration | RFunctionDeclaration | RFunctionCall | RReturnStatement | RIfStatement | RBlock | REmptyStatement;
 
 // Transformer function
@@ -158,6 +163,12 @@ function transformNode(node: ts.Node): RStatement | RExpression {
         case ts.SyntaxKind.Identifier: {
             return { type: 'Identifier', name: (node as ts.Identifier).text };
         }
+        case ts.SyntaxKind.ParenthesizedExpression: {
+            return { type: 'ParenthesizedExpression', inner: transformNode((node as ts.ParenthesizedExpression).expression)}
+        }
+
+        // Ignore these elements
+        case ts.SyntaxKind.ImportDeclaration:
         case ts.SyntaxKind.EndOfFileToken:
             return { type: 'Empty' };
         default:
@@ -304,6 +315,12 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
         case 'ArrowFunction': {
             p.append(`function(${expr.params.join(', ')}) `)
             printRNode(expr.body);
+            return expr;
+        }
+        case 'ParenthesizedExpression': {
+            p.append('(');
+            printRNode(expr.inner);
+            p.append(')');
             return expr;
         }
     }

@@ -1,5 +1,3 @@
-import * as R from '../src/compiler/rlang';
-
 type T = Symbol;
 
 function f(a: number, c: string): string {

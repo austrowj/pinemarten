@@ -16,7 +16,7 @@ interface RFunctionDeclaration {
 
 interface RFunctionCall {
     type: 'FunctionCall';
-    functionName: string;
+    functionName: RExpression | RStatement;
     arguments: RExpression[];
 }
 
@@ -40,11 +40,6 @@ interface RLiteral {
 interface RIdentifier {
     type: 'Identifier';
     name: string;
-}
-
-interface RReturnStatement {
-    type: 'ReturnStatement';
-    expression: RExpression;
 }
 
 interface RIfStatement {
@@ -77,7 +72,7 @@ interface REmptyStatement {
 }
 
 type RExpression = RLiteral | RIdentifier | RBinaryExpression | RFunctionCall | RPropertyAccess | RArrowFunction | RParenthesizedExpression;
-type RStatement = RVariableDeclaration | RFunctionDeclaration | RFunctionCall | RReturnStatement | RIfStatement | RBlock | REmptyStatement;
+type RStatement = RVariableDeclaration | RFunctionDeclaration | RFunctionCall | RIfStatement | RBlock | REmptyStatement;
 
 // Transformer function
 function transformNode(node: ts.Node): RStatement | RExpression {
@@ -108,7 +103,7 @@ function transformNode(node: ts.Node): RStatement | RExpression {
         }
         case ts.SyntaxKind.CallExpression: {
             const call = node as ts.CallExpression;
-            const functionName = call.expression.getText();
+            const functionName = transformNode(call.expression);
             const args = call.arguments.map(arg => transformNode(arg) as RExpression);
             return { type: 'FunctionCall', functionName, arguments: args };
         }
@@ -125,11 +120,16 @@ function transformNode(node: ts.Node): RStatement | RExpression {
             const pa = node as ts.PropertyAccessExpression;
             const object = transformNode(pa.expression) as RExpression;
             const property = pa.name.text;
+            const isFunction = //typeChecker.getSignaturesOfType(typeChecker.getTypeAtLocation(expr.name), ts.SignatureKind.Call).length > 0
+                            //? ' |> '
+                            //: '$'
+                        false;
+
             return {
                 type: 'PropertyAccess',
                 object,
                 property,
-                isFunction: ts.isCallExpression(pa.parent) && pa.parent.expression === pa,
+                isFunction: isFunction,
             };
         }
         case ts.SyntaxKind.IfStatement: {
@@ -144,7 +144,7 @@ function transformNode(node: ts.Node): RStatement | RExpression {
         case ts.SyntaxKind.ReturnStatement: {
             const returnNode = node as ts.ReturnStatement;
             const expression = transformNode(returnNode.expression!) as RExpression;
-            return { type: 'ReturnStatement', expression };
+            return { type: 'FunctionCall', functionName: {type: 'Identifier', name: 'return'}, arguments: [expression] };
         }
         case ts.SyntaxKind.Block: {
             const statements = (node as ts.Block).statements.map(x => transformNode(x));
@@ -182,7 +182,6 @@ function isStatement(node: RStatement | RExpression | undefined): node is RState
         node.type === 'VariableDeclaration'
         || node.type === 'FunctionDeclaration'
         || node.type === 'FunctionCall'
-        || node.type === 'ReturnStatement'
         || node.type === 'IfStatement'
         || node.type === 'Block'
     );
@@ -236,19 +235,7 @@ function printStatement(stmt: RStatement): RStatement { // Return original state
             return stmt;
         }
         case 'FunctionCall': {
-            p.append(`${stmt.functionName}(`);
-            stmt.arguments.forEach((x, i) => {
-                printExpression(x);
-                if (i < stmt.arguments.length - 1) { p.append(', '); }
-            })
-            p.append(')');
-            p.flush();
-            return stmt;
-        }
-        case 'ReturnStatement': {
-            p.append('return(');
-            printExpression(stmt.expression);
-            p.append(')');
+            printFunctionCall(stmt);
             p.flush();
             return stmt;
         }
@@ -280,6 +267,18 @@ function printStatement(stmt: RStatement): RStatement { // Return original state
     }
 }
 
+function printFunctionCall(fc: RFunctionCall): RFunctionCall {
+
+    printRNode(fc.functionName);
+    p.append('(');
+    fc.arguments.forEach((x, i) => {
+        printExpression(x);
+        if (i < fc.arguments.length - 1) { p.append(', '); }
+    })
+    p.append(')');
+    return fc;
+}
+
 function printExpression(expr: RExpression): RExpression { // Return the original expression to verify coverage.
     switch (expr.type) {
         case 'Literal': {
@@ -297,12 +296,7 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
             return expr;
         }
         case 'FunctionCall': {
-            p.append(`${expr.functionName}(`);
-            expr.arguments.forEach((x, i) => {
-                printExpression(x);
-                if (i < expr.arguments.length - 1) { p.append(', '); }
-            })
-            p.append(')');
+            printFunctionCall(expr);
             return expr;
         }
         case 'PropertyAccess': {

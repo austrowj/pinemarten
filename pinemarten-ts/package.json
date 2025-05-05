@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "test-compiler": "tsc && node dist/src/compiler/compiler.js",
+    "test-ast": "tsc && node dist/src/compiler/ast.js",
     "compile": "node dist/src/compiler/compiler.js"
   },
   "keywords": [],

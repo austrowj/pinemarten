@@ -59,7 +59,7 @@ interface RPropertyAccess {
 interface RArrowFunction {
     type: 'ArrowFunction';
     params: string[];
-    body: RStatement[];
+    body: RStatement | RExpression;
 }
 
 interface RBlock {
@@ -93,21 +93,9 @@ function transformNode(node: ts.Node): RStatement | RExpression {
         case ts.SyntaxKind.ArrowFunction: {
             const fn = node as ts.ArrowFunction;
             const params = fn.parameters.map(p => p.name.getText());
-            const bodyStatements: RStatement[] = [];
-            if (ts.isBlock(fn.body)) {
-                fn.body.statements.forEach(stmt => {
-                    const transformed = transformNode(stmt);
-                    if (transformed && isStatement(transformed)) {
-                        bodyStatements.push(transformed);
-                    }
-                });
-            } else {
-                const expr = transformNode(fn.body);
-                if (expr) {
-                    bodyStatements.push({ type: 'ReturnStatement', expression: expr as RExpression });
-                }
-            }
-            return { type: 'ArrowFunction', params, body: bodyStatements };
+            const body = fn.body ? transformNode(fn.body) : { type: 'Empty' } as REmptyStatement;
+            
+            return { type: 'ArrowFunction', params, body: body };
         }
         case ts.SyntaxKind.ExpressionStatement: {
             const expr = (node as ts.ExpressionStatement).expression;
@@ -189,18 +177,7 @@ function isStatement(node: RStatement | RExpression | undefined): node is RState
     );
 }
 
-// Entry point
-function parseAndTransform(sourceCode: string): RStatement[] {
-    const sourceFile = ts.createSourceFile('temp.ts', sourceCode, ts.ScriptTarget.ESNext, true);
-    const rAst: RStatement[] = [];
-    sourceFile.forEachChild(node => {
-        const transformed = transformNode(node);
-        if (transformed && isStatement(transformed)) {
-            rAst.push(transformed);
-        }
-    });
-    return rAst;
-}
+// Printing
 
 class Printer {
 
@@ -231,27 +208,21 @@ class Printer {
 
 const p = new Printer('  ');
 
-// Printer
-function printR(ast: RStatement[]): string {
-    ast.map(printStatement);
-    return p.getOutput();
-}
-
-function printStatement(stmt: RStatement) {
+function printStatement(stmt: RStatement): RStatement { // Return original statement to statically verify all cases are covered.
     switch (stmt.type) {
         case 'VariableDeclaration': {
             p.append(stmt.name);
             p.append(' <- ');
             printExpression(stmt.value);
             p.flush();
-            break;
+            return stmt;
         }
         case 'FunctionDeclaration': {
             p.append(stmt.name);
             p.append(` <- function(${stmt.params.join(', ')}) `);
             printRNode(stmt.body);
             p.flush();
-            break;
+            return stmt;
         }
         case 'FunctionCall': {
             p.append(`${stmt.functionName}(`);
@@ -261,14 +232,14 @@ function printStatement(stmt: RStatement) {
             })
             p.append(')');
             p.flush();
-            break;
+            return stmt;
         }
         case 'ReturnStatement': {
             p.append('return(');
             printExpression(stmt.expression);
             p.append(')');
             p.flush();
-            break;
+            return stmt;
         }
         case 'IfStatement': {
             p.append('if (');
@@ -280,7 +251,7 @@ function printStatement(stmt: RStatement) {
                 printRNode(stmt.elseBranch);
             }
             p.flush();
-            break;
+            return stmt;
         }
         case 'Block': {
             p.append('{');
@@ -290,27 +261,29 @@ function printStatement(stmt: RStatement) {
             p.unindent();
             p.append('}');
             p.flush();
+            return stmt;
         }
         case 'Empty': {
+            return stmt;
         }
     }
 }
 
-function printExpression(expr: RExpression): void {
+function printExpression(expr: RExpression): RExpression { // Return the original expression to verify coverage.
     switch (expr.type) {
         case 'Literal': {
             p.append(expr.text);
-            break;
+            return expr;
         }
         case 'Identifier': {
             p.append(expr.name);
-            break;
+            return expr;
         }
         case 'BinaryExpression': {
             printExpression(expr.left);
             p.append(` ${expr.operator} `);
             printExpression(expr.right);
-            break;
+            return expr;
         }
         case 'FunctionCall': {
             p.append(`${expr.functionName}(`);
@@ -319,19 +292,19 @@ function printExpression(expr: RExpression): void {
                 if (i < expr.arguments.length - 1) { p.append(', '); }
             })
             p.append(')');
-            break;
+            return expr;
         }
         case 'PropertyAccess': {
             printExpression(expr.object);
             if (expr.isFunction) { p.append(' |> '); }
             else { p.append('$'); }
             p.append(expr.property);
-            break;
+            return expr;
         }
-        case 'ArrowFunction': { // TODO
-            const params = expr.params.join(', ');
-            const body = expr.body.map(printStatement).join('\n  ');
-            `function(${params}) ${body}`;
+        case 'ArrowFunction': {
+            p.append(`function(${expr.params.join(', ')}) `)
+            printRNode(expr.body);
+            return expr;
         }
     }
 }
@@ -341,10 +314,44 @@ function printRNode(node: RStatement | RExpression): void {
     else { printExpression(node); }
 }
 
+function printR(ast: RStatement[]): string {
+    ast.map(printStatement);
+    return p.getOutput();
+}
+
+// Entry point
+function parseAndTransform(sourceCode: string): RStatement[] {
+    const sourceFile = ts.createSourceFile('temp.ts', sourceCode, ts.ScriptTarget.ESNext, true);
+    const rAst: RStatement[] = [];
+    sourceFile.forEachChild(node => {
+        const transformed = transformNode(node);
+        if (transformed && isStatement(transformed)) {
+            rAst.push(transformed);
+        }
+    });
+    return rAst;
+}
+
+function transformSourceProgram(filename: string): RStatement[] {
+
+    const program = ts.createProgram([filename], {});
+    const sourceFile = program.getSourceFile(filename);
+    const typeChecker = program.getTypeChecker();
+
+    const rAst: RStatement[] = [];
+    sourceFile!.forEachChild(node => {
+        const transformed = transformNode(node);
+        if (transformed && isStatement(transformed)) {
+            rAst.push(transformed);
+        }
+    });
+    return rAst;
+}
+
 // Example usage
 const tsCode = `
 let x = 42;
-//const inc = (n) => n + 1;
+const inc = (n) => n + 1;
 function add(a, b) {
     let result = a + b;
     return result;
@@ -356,7 +363,8 @@ if (x > 10) {
 }
 `;
 
-const rAst = parseAndTransform(tsCode);
+//const rAst = parseAndTransform(tsCode);
+const rAst = transformSourceProgram('test/langtest.R.ts');
 console.log(JSON.stringify(rAst, null, 2));
 console.log('\nGenerated R Code:\n');
 console.log(printR(rAst));

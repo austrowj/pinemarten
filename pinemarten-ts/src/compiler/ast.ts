@@ -11,7 +11,7 @@ interface RFunctionDeclaration {
     type: 'FunctionDeclaration';
     name: string;
     params: string[];
-    body: RStatement[];
+    body: RStatement | RExpression;
 }
 
 interface RFunctionCall {
@@ -29,7 +29,7 @@ interface RBinaryExpression {
 
 interface RLiteral {
     type: 'Literal';
-    value: string | number | boolean;
+    text: string;
 }
 
 interface RIdentifier {
@@ -45,8 +45,8 @@ interface RReturnStatement {
 interface RIfStatement {
     type: 'IfStatement';
     condition: RExpression;
-    thenBranch: RStatement[];
-    elseBranch?: RStatement[];
+    thenBranch: RStatement | RExpression;
+    elseBranch: RStatement | RExpression;
 }
 
 interface RPropertyAccess {
@@ -62,11 +62,20 @@ interface RArrowFunction {
     body: RStatement[];
 }
 
+interface RBlock {
+    type: 'Block';
+    statements: (RStatement | RExpression)[];
+}
+
+interface REmptyStatement {
+    type: 'Empty';
+}
+
 type RExpression = RLiteral | RIdentifier | RBinaryExpression | RFunctionCall | RPropertyAccess | RArrowFunction;
-type RStatement = RVariableDeclaration | RFunctionDeclaration | RFunctionCall | RReturnStatement | RIfStatement;
+type RStatement = RVariableDeclaration | RFunctionDeclaration | RFunctionCall | RReturnStatement | RIfStatement | RBlock | REmptyStatement;
 
 // Transformer function
-function transformNode(node: ts.Node): RStatement | RExpression | undefined {
+function transformNode(node: ts.Node): RStatement | RExpression {
     switch (node.kind) {
         case ts.SyntaxKind.VariableStatement: {
             const decl = (node as ts.VariableStatement).declarationList.declarations[0];
@@ -78,14 +87,8 @@ function transformNode(node: ts.Node): RStatement | RExpression | undefined {
             const fn = node as ts.FunctionDeclaration;
             const name = fn.name!.text;
             const params = fn.parameters.map(p => p.name.getText());
-            const bodyStatements: RStatement[] = [];
-            fn.body!.statements.forEach(stmt => {
-                const transformed = transformNode(stmt);
-                if (transformed && isStatement(transformed)) {
-                    bodyStatements.push(transformed);
-                }
-            });
-            return { type: 'FunctionDeclaration', name, params, body: bodyStatements };
+            const body = fn.body ? transformNode(fn.body) : {type: 'Empty'} as REmptyStatement;
+            return { type: 'FunctionDeclaration', name, params, body: body };
         }
         case ts.SyntaxKind.ArrowFunction: {
             const fn = node as ts.ArrowFunction;
@@ -140,11 +143,8 @@ function transformNode(node: ts.Node): RStatement | RExpression | undefined {
             const ifNode = node as ts.IfStatement;
             const condition = transformNode(ifNode.expression) as RExpression;
 
-            const thenTransformed = transformNode(ifNode.thenStatement);
-            const thenBranch = isStatement(thenTransformed) ? [thenTransformed] : [];
-
-            const elseTransformed = ifNode.elseStatement ? transformNode(ifNode.elseStatement) : undefined;
-            const elseBranch = elseTransformed && isStatement(elseTransformed) ? [elseTransformed] : undefined;
+            const thenBranch = transformNode(ifNode.thenStatement);
+            const elseBranch = ifNode.elseStatement ? transformNode(ifNode.elseStatement) : ({type: 'Empty'} as REmptyStatement);
 
             return { type: 'IfStatement', condition, thenBranch, elseBranch };
         }
@@ -153,16 +153,25 @@ function transformNode(node: ts.Node): RStatement | RExpression | undefined {
             const expression = transformNode(returnNode.expression!) as RExpression;
             return { type: 'ReturnStatement', expression };
         }
+        case ts.SyntaxKind.Block: {
+            const statements = (node as ts.Block).statements.map(x => transformNode(x));
+            return { type: 'Block', statements: statements}
+        }
         case ts.SyntaxKind.NumericLiteral:
-        case ts.SyntaxKind.StringLiteral:
         case ts.SyntaxKind.TrueKeyword:
         case ts.SyntaxKind.FalseKeyword: {
             const lit = node as ts.LiteralExpression;
-            return { type: 'Literal', value: eval(lit.getText()) };
+            return { type: 'Literal', text: lit.getText() };
+        }
+        case ts.SyntaxKind.StringLiteral: {
+            const lit = node as ts.LiteralExpression;
+            return { type: 'Literal', text: `"${lit.getText()}"` };
         }
         case ts.SyntaxKind.Identifier: {
             return { type: 'Identifier', name: (node as ts.Identifier).text };
         }
+        case ts.SyntaxKind.EndOfFileToken:
+            return { type: 'Empty' };
         default:
             throw Error(`Unsupported syntax ("${ts.SyntaxKind[node.kind]}"), code:\n${node.getText()}`);
     }
@@ -170,7 +179,14 @@ function transformNode(node: ts.Node): RStatement | RExpression | undefined {
 
 function isStatement(node: RStatement | RExpression | undefined): node is RStatement {
     if (node === undefined) { return false; }
-    return node.type === 'VariableDeclaration' || node.type === 'FunctionDeclaration' || node.type === 'FunctionCall' || node.type === 'ReturnStatement' || node.type === 'IfStatement';
+    return (
+        node.type === 'VariableDeclaration'
+        || node.type === 'FunctionDeclaration'
+        || node.type === 'FunctionCall'
+        || node.type === 'ReturnStatement'
+        || node.type === 'IfStatement'
+        || node.type === 'Block'
+    );
 }
 
 // Entry point
@@ -186,58 +202,149 @@ function parseAndTransform(sourceCode: string): RStatement[] {
     return rAst;
 }
 
+class Printer {
+
+    constructor(private indentText = '    ') {}
+
+    private buffer = '';
+    private indentLevel = 0;
+    private output = '';
+
+    private getIndentText() {
+        return this.indentText.repeat(this.indentLevel);
+    }
+
+    public append(text: string) {
+        this.buffer += text;
+    }
+
+    public flush() {
+        this.output += `${this.getIndentText()}${this.buffer}\n`;
+        this.buffer = '';
+    }
+
+    public indent() { this.indentLevel += 1; }
+    public unindent() { this.indentLevel = Math.max(this.indentLevel-1, 0); }
+
+    public getOutput() { return this.output; }
+}
+
+const p = new Printer('  ');
+
 // Printer
 function printR(ast: RStatement[]): string {
-    return ast.map(printStatement).join('\n');
+    ast.map(printStatement);
+    return p.getOutput();
 }
 
-function printStatement(stmt: RStatement): string {
+function printStatement(stmt: RStatement) {
     switch (stmt.type) {
-        case 'VariableDeclaration':
-            return `${stmt.name} <- ${printExpression(stmt.value)}`;
-        case 'FunctionDeclaration': {
-            const paramList = stmt.params.join(', ');
-            const body = stmt.body.map(printStatement).join('\n  ');
-            return `${stmt.name} <- function(${paramList}) {\n  ${body}\n}`;
+        case 'VariableDeclaration': {
+            p.append(stmt.name);
+            p.append(' <- ');
+            printExpression(stmt.value);
+            p.flush();
+            break;
         }
-        case 'FunctionCall':
-            return `${stmt.functionName}(${stmt.arguments.map(printExpression).join(', ')})`;
-        case 'ReturnStatement':
-            return `return(${printExpression(stmt.expression)})`;
+        case 'FunctionDeclaration': {
+            p.append(stmt.name);
+            p.append(` <- function(${stmt.params.join(', ')}) `);
+            printRNode(stmt.body);
+            p.flush();
+            break;
+        }
+        case 'FunctionCall': {
+            p.append(`${stmt.functionName}(`);
+            stmt.arguments.forEach((x, i) => {
+                printExpression(x);
+                if (i < stmt.arguments.length - 1) { p.append(', '); }
+            })
+            p.append(')');
+            p.flush();
+            break;
+        }
+        case 'ReturnStatement': {
+            p.append('return(');
+            printExpression(stmt.expression);
+            p.append(')');
+            p.flush();
+            break;
+        }
         case 'IfStatement': {
-            const thenPart = stmt.thenBranch.map(printStatement).join('\n  ');
-            const elsePart = stmt.elseBranch ? ` else {\n  ${stmt.elseBranch.map(printStatement).join('\n  ')}\n}` : '';
-            return `if (${printExpression(stmt.condition)}) {\n  ${thenPart}\n}${elsePart}`;
+            p.append('if (');
+            printExpression(stmt.condition);
+            p.append(') ');
+            printRNode(stmt.thenBranch);
+            if (stmt.elseBranch.type != 'Empty') {
+                p.append(' else ');
+                printRNode(stmt.elseBranch);
+            }
+            p.flush();
+            break;
+        }
+        case 'Block': {
+            p.append('{');
+            p.flush();
+            p.indent();
+            stmt.statements.forEach(x => printRNode(x));
+            p.unindent();
+            p.append('}');
+            p.flush();
+        }
+        case 'Empty': {
         }
     }
 }
 
-function printExpression(expr: RExpression): string {
+function printExpression(expr: RExpression): void {
     switch (expr.type) {
-        case 'Literal':
-            return typeof expr.value === 'string' ? `"${expr.value}"` : String(expr.value);
-        case 'Identifier':
-            return expr.name;
-        case 'BinaryExpression':
-            return `(${printExpression(expr.left)} ${expr.operator} ${printExpression(expr.right)})`;
-        case 'FunctionCall':
-            return `${expr.functionName}(${expr.arguments.map(printExpression).join(', ')})`;
-        case 'PropertyAccess':
-            return expr.isFunction
-                ? `${printExpression(expr.object)} |> ${expr.property}`
-                : `${printExpression(expr.object)}$${expr.property}`;
-        case 'ArrowFunction': {
+        case 'Literal': {
+            p.append(expr.text);
+            break;
+        }
+        case 'Identifier': {
+            p.append(expr.name);
+            break;
+        }
+        case 'BinaryExpression': {
+            printExpression(expr.left);
+            p.append(` ${expr.operator} `);
+            printExpression(expr.right);
+            break;
+        }
+        case 'FunctionCall': {
+            p.append(`${expr.functionName}(`);
+            expr.arguments.forEach((x, i) => {
+                printExpression(x);
+                if (i < expr.arguments.length - 1) { p.append(', '); }
+            })
+            p.append(')');
+            break;
+        }
+        case 'PropertyAccess': {
+            printExpression(expr.object);
+            if (expr.isFunction) { p.append(' |> '); }
+            else { p.append('$'); }
+            p.append(expr.property);
+            break;
+        }
+        case 'ArrowFunction': { // TODO
             const params = expr.params.join(', ');
             const body = expr.body.map(printStatement).join('\n  ');
-            return `function(${params}) {\n  ${body}\n}`;
+            `function(${params}) ${body}`;
         }
     }
+}
+
+function printRNode(node: RStatement | RExpression): void {
+    if (isStatement(node)) { printStatement(node); }
+    else { printExpression(node); }
 }
 
 // Example usage
 const tsCode = `
 let x = 42;
-const inc = (n) => n + 1;
+//const inc = (n) => n + 1;
 function add(a, b) {
     let result = a + b;
     return result;

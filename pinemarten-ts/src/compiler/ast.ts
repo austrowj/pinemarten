@@ -56,7 +56,13 @@ interface RPropertyAccess {
     isFunction: boolean;
 }
 
-type RExpression = RLiteral | RIdentifier | RBinaryExpression | RFunctionCall | RPropertyAccess;
+interface RArrowFunction {
+    type: 'ArrowFunction';
+    params: string[];
+    body: RStatement[];
+}
+
+type RExpression = RLiteral | RIdentifier | RBinaryExpression | RFunctionCall | RPropertyAccess | RArrowFunction;
 type RStatement = RVariableDeclaration | RFunctionDeclaration | RFunctionCall | RReturnStatement | RIfStatement;
 
 // Transformer function
@@ -80,6 +86,25 @@ function transformNode(node: ts.Node): RStatement | RExpression | undefined {
                 }
             });
             return { type: 'FunctionDeclaration', name, params, body: bodyStatements };
+        }
+        case ts.SyntaxKind.ArrowFunction: {
+            const fn = node as ts.ArrowFunction;
+            const params = fn.parameters.map(p => p.name.getText());
+            const bodyStatements: RStatement[] = [];
+            if (ts.isBlock(fn.body)) {
+                fn.body.statements.forEach(stmt => {
+                    const transformed = transformNode(stmt);
+                    if (transformed && isStatement(transformed)) {
+                        bodyStatements.push(transformed);
+                    }
+                });
+            } else {
+                const expr = transformNode(fn.body);
+                if (expr) {
+                    bodyStatements.push({ type: 'ReturnStatement', expression: expr as RExpression });
+                }
+            }
+            return { type: 'ArrowFunction', params, body: bodyStatements };
         }
         case ts.SyntaxKind.ExpressionStatement: {
             const expr = (node as ts.ExpressionStatement).expression;
@@ -114,8 +139,13 @@ function transformNode(node: ts.Node): RStatement | RExpression | undefined {
         case ts.SyntaxKind.IfStatement: {
             const ifNode = node as ts.IfStatement;
             const condition = transformNode(ifNode.expression) as RExpression;
-            const thenBranch = [transformNode(ifNode.thenStatement)].filter(isStatement) as RStatement[];
-            const elseBranch = ifNode.elseStatement ? [transformNode(ifNode.elseStatement)].filter(isStatement) as RStatement[] : undefined;
+
+            const thenTransformed = transformNode(ifNode.thenStatement);
+            const thenBranch = isStatement(thenTransformed) ? [thenTransformed] : [];
+
+            const elseTransformed = ifNode.elseStatement ? transformNode(ifNode.elseStatement) : undefined;
+            const elseBranch = elseTransformed && isStatement(elseTransformed) ? [elseTransformed] : undefined;
+
             return { type: 'IfStatement', condition, thenBranch, elseBranch };
         }
         case ts.SyntaxKind.ReturnStatement: {
@@ -134,11 +164,12 @@ function transformNode(node: ts.Node): RStatement | RExpression | undefined {
             return { type: 'Identifier', name: (node as ts.Identifier).text };
         }
         default:
-            return undefined;
+            throw Error(`Unsupported syntax ("${ts.SyntaxKind[node.kind]}"), code:\n${node.getText()}`);
     }
 }
 
-function isStatement(node: RStatement | RExpression): node is RStatement {
+function isStatement(node: RStatement | RExpression | undefined): node is RStatement {
+    if (node === undefined) { return false; }
     return node.type === 'VariableDeclaration' || node.type === 'FunctionDeclaration' || node.type === 'FunctionCall' || node.type === 'ReturnStatement' || node.type === 'IfStatement';
 }
 
@@ -195,12 +226,18 @@ function printExpression(expr: RExpression): string {
             return expr.isFunction
                 ? `${printExpression(expr.object)} |> ${expr.property}`
                 : `${printExpression(expr.object)}$${expr.property}`;
+        case 'ArrowFunction': {
+            const params = expr.params.join(', ');
+            const body = expr.body.map(printStatement).join('\n  ');
+            return `function(${params}) {\n  ${body}\n}`;
+        }
     }
 }
 
 // Example usage
 const tsCode = `
 let x = 42;
+const inc = (n) => n + 1;
 function add(a, b) {
     let result = a + b;
     return result;

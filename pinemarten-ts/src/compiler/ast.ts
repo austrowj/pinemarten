@@ -235,11 +235,11 @@ class RTransformer {
                 const props = obj.properties.map(x => this.transformNode(x));
                 return { type: 'DataLiteral', columns: props }
             }
-
-            // Ignore these elements
             case ts.SyntaxKind.AsExpression: {
                 return this.transformNode((node as ts.AsExpression).expression);
             }
+
+            // Ignore these elements
             case ts.SyntaxKind.ImportDeclaration:
             case ts.SyntaxKind.EndOfFileToken:
                 return { type: 'Empty' };
@@ -358,7 +358,16 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
             return expr;
         }
         case 'PropertyAccess': {
-            printExpression(expr.object);
+            // Property access operator '$' has different precedence in R than in TS.
+            // Have to check for and wrap problematic accessors in parentheses.
+            if (expr.object.type == 'Identifier' || expr.isFunction) {
+                printExpression(expr.object);
+            } else {
+                p.append('(');
+                printExpression(expr.object);
+                p.append(')');
+            }
+
             if (expr.isFunction) { p.append(' |> '); }
             else { p.append('$'); }
             p.append(expr.property);

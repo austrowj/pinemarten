@@ -42,6 +42,17 @@ interface RIdentifier {
     name: string;
 }
 
+interface RDataColumn {
+    type: 'DataColumn';
+    name: string;
+    value: RExpression | RStatement;
+}
+
+interface RDataLiteral {
+    type: 'DataLiteral';
+    columns: (RExpression | RStatement)[];
+}
+
 interface RIfStatement {
     type: 'IfStatement';
     condition: RExpression;
@@ -71,15 +82,30 @@ interface REmptyStatement {
     type: 'Empty';
 }
 
-type RExpression = RLiteral | RIdentifier | RBinaryExpression | RFunctionCall | RPropertyAccess | RArrowFunction | RParenthesizedExpression;
-type RStatement = RVariableDeclaration | RFunctionDeclaration | RFunctionCall | RIfStatement | RBlock | REmptyStatement;
+type RExpression =
+    | RLiteral
+    | RIdentifier
+    | RBinaryExpression
+    | RFunctionCall
+    | RPropertyAccess
+    | RArrowFunction
+    | RParenthesizedExpression
+    | RDataColumn
+    | RDataLiteral
+;
+type RStatement =
+    | RVariableDeclaration
+    | RFunctionDeclaration
+    | RIfStatement
+    | RBlock
+    | REmptyStatement
+;
 
 function isStatement(node: RStatement | RExpression | undefined): node is RStatement {
     if (node === undefined) { return false; }
     return (
         node.type === 'VariableDeclaration'
         || node.type === 'FunctionDeclaration'
-        || node.type === 'FunctionCall'
         || node.type === 'IfStatement'
         || node.type === 'Block'
     );
@@ -188,23 +214,30 @@ class RTransformer {
                 return { type: 'Block', statements: statements}
             }
             case ts.SyntaxKind.NumericLiteral:
+            case ts.SyntaxKind.StringLiteral:
             case ts.SyntaxKind.TrueKeyword:
             case ts.SyntaxKind.FalseKeyword: {
                 const lit = node as ts.LiteralExpression;
                 return { type: 'Literal', text: lit.getText() };
             }
-            case ts.SyntaxKind.StringLiteral: {
-                const lit = node as ts.LiteralExpression;
-                return { type: 'Literal', text: `"${lit.getText()}"` };
-            }
             case ts.SyntaxKind.Identifier: {
                 return { type: 'Identifier', name: (node as ts.Identifier).text };
             }
             case ts.SyntaxKind.ParenthesizedExpression: {
-                return { type: 'ParenthesizedExpression', inner: this.transformNode((node as ts.ParenthesizedExpression).expression)}
+                return { type: 'ParenthesizedExpression', inner: this.transformNode((node as ts.ParenthesizedExpression).expression) }
+            }
+            case ts.SyntaxKind.PropertyAssignment: {
+                const prop = node as ts.PropertyAssignment;
+                return { type: 'DataColumn', name: prop.name.getText(), value: this.transformNode(prop.initializer) }
+            }
+            case ts.SyntaxKind.ObjectLiteralExpression: {
+                const obj = node as ts.ObjectLiteralExpression;
+                const props = obj.properties.map(x => this.transformNode(x));
+                return { type: 'DataLiteral', columns: props }
             }
 
             // Ignore these elements
+            case ts.SyntaxKind.AsExpression:
             case ts.SyntaxKind.ImportDeclaration:
             case ts.SyntaxKind.EndOfFileToken:
                 return { type: 'Empty' };
@@ -244,7 +277,7 @@ class Printer {
     public getOutput() { return this.output; }
 }
 
-const p = new Printer('  ');
+const p = new Printer('    ');
 
 function printStatement(stmt: RStatement): RStatement { // Return original statement to statically verify all cases are covered.
     switch (stmt.type) {
@@ -259,11 +292,6 @@ function printStatement(stmt: RStatement): RStatement { // Return original state
             p.append(stmt.name);
             p.append(` <- function(${stmt.params.join(', ')}) `);
             printRNode(stmt.body);
-            p.flush();
-            return stmt;
-        }
-        case 'FunctionCall': {
-            printFunctionCall(stmt);
             p.flush();
             return stmt;
         }
@@ -345,6 +373,28 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
             p.append(')');
             return expr;
         }
+        case 'DataColumn': {
+            p.append(expr.name);
+            p.append(' = ');
+            printRNode(expr.value);
+            return expr;
+        }
+        case 'DataLiteral': {
+            p.append('tibble(');
+            p.flush();
+            p.indent();
+            expr.columns.forEach((x, i) => {
+                printRNode(x);
+                if (i < expr.columns.length - 1) {
+                    p.append(', ');
+                    p.flush();
+                }
+            });
+            p.flush();
+            p.unindent();
+            p.append(')');
+            return expr;
+        }
     }
 }
 
@@ -354,7 +404,10 @@ function printRNode(node: RStatement | RExpression): void {
 }
 
 function printR(ast: RStatement[]): string {
-    ast.map(printStatement);
+    ast.forEach(x => {
+        printStatement(x);
+        p.flush();
+    });
     return p.getOutput();
 }
 

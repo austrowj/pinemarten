@@ -8,7 +8,7 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
     const count = 3;
 
     count.toLocaleString().repeat(3*(1+2));
-/*
+
     const df2 = df
         .as(x => ({
             id2: test_transform(x),
@@ -16,7 +16,7 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
             mystr: x.name.repeat(count),
             zz: x.zz
         }))
-    /*
+    
         .with(x => {
             const w = 7;
             return {
@@ -38,12 +38,12 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
 
     function test_table_transform<T extends { id?: number, id2?: number }>(df: T) {
         return {
-            id: df.id !== undefined ? df.id : -1,
-            id2: df.id2 !== undefined ? df.id2 : '',
-            ...df
+            //id: df.id !== undefined ? df.id : -1, // TODO: ConditionalExpression
+            //id2: df.id2 !== undefined ? df.id2 : '',
+            //...df // TODO: SpreadAssignment
         }
     }
 
     df.as(test_table_transform).schema; // works!
-    */
+    
 }

@@ -237,7 +237,9 @@ class RTransformer {
             }
 
             // Ignore these elements
-            case ts.SyntaxKind.AsExpression:
+            case ts.SyntaxKind.AsExpression: {
+                return this.transformNode((node as ts.AsExpression).expression);
+            }
             case ts.SyntaxKind.ImportDeclaration:
             case ts.SyntaxKind.EndOfFileToken:
                 return { type: 'Empty' };
@@ -285,14 +287,12 @@ function printStatement(stmt: RStatement): RStatement { // Return original state
             p.append(stmt.name);
             p.append(' <- ');
             printExpression(stmt.value);
-            p.flush();
             return stmt;
         }
         case 'FunctionDeclaration': {
             p.append(stmt.name);
             p.append(` <- function(${stmt.params.join(', ')}) `);
             printRNode(stmt.body);
-            p.flush();
             return stmt;
         }
         case 'IfStatement': {
@@ -304,14 +304,16 @@ function printStatement(stmt: RStatement): RStatement { // Return original state
                 p.append(' else ');
                 printRNode(stmt.elseBranch);
             }
-            p.flush();
             return stmt;
         }
         case 'Block': {
             p.append('{');
             p.flush();
             p.indent();
-            stmt.statements.forEach(x => printRNode(x));
+            stmt.statements.forEach(x => {
+                printRNode(x);
+                p.flush();
+            });
             p.unindent();
             p.append('}');
             p.flush();
@@ -385,12 +387,9 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
             p.indent();
             expr.columns.forEach((x, i) => {
                 printRNode(x);
-                if (i < expr.columns.length - 1) {
-                    p.append(', ');
-                    p.flush();
-                }
+                if (i < expr.columns.length - 1) { p.append(', '); }
+                p.flush();
             });
-            p.flush();
             p.unindent();
             p.append(')');
             return expr;

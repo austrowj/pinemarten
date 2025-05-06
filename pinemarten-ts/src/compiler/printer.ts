@@ -1,4 +1,4 @@
-import { isStatement, RStatement, RExpression, RFunctionCall } from './ast_types';
+import { isStatement, isExpression, RStatement, RExpression, RFunctionCall } from './ast_types';
 
 // State-based printer.
 // There is probably a better design but idk what it is and this works for now.
@@ -32,17 +32,12 @@ class Printer {
 const p = new Printer('    '); // The actual printer instance we will use.
 
 function printStatement(stmt: RStatement): RStatement { // Return original statement to statically verify all cases are covered.
+    if (isExpression(stmt)) { return printExpression(stmt); }
     switch (stmt.type) {
-        case 'VariableDeclaration': {
+        case 'Assignment': {
             p.append(stmt.name);
             p.append(' <- ');
             printExpression(stmt.value);
-            return stmt;
-        }
-        case 'FunctionDeclaration': {
-            p.append(stmt.name);
-            p.append(` <- function(${stmt.params.join(', ')}) `);
-            printRNode(stmt.body);
             return stmt;
         }
         case 'IfStatement': {
@@ -103,6 +98,11 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
             printExpression(expr.right);
             return expr;
         }
+        case 'FunctionDefinition': {
+            p.append(`function(${expr.params.join(', ')}) `);
+            printRNode(expr.body);
+            return expr;
+        }
         case 'FunctionCall': {
             printFunctionCall(expr);
             return expr;
@@ -122,11 +122,6 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
             if (expr.isFunction) { p.append(' |> '); } // Don't rely on fancy features from the dplyr '%>%'.
             else { p.append('$'); }
             p.append(expr.property);
-            return expr;
-        }
-        case 'ArrowFunction': {
-            p.append(`function(${expr.params.join(', ')}) `)
-            printRNode(expr.body);
             return expr;
         }
         case 'ParenthesizedExpression': {

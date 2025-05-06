@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import {isStatement, RStatement, RExpression, REmptyStatement} from './ast_types';
+import {isStatement, RStatement, RExpression, REmptyStatement, RFunctionDefinition} from './ast_types';
 
 export class RTransformer {
 
@@ -37,21 +37,24 @@ export class RTransformer {
                 const decl = (node as ts.VariableStatement).declarationList.declarations[0];
                 const name = (decl.name as ts.Identifier).text;
                 const value = this.transformNode(decl.initializer!) as RExpression;
-                return { type: 'VariableDeclaration', name, value };
+                return { type: 'Assignment', name, value };
             }
             case ts.SyntaxKind.FunctionDeclaration: {
                 const fn = node as ts.FunctionDeclaration;
                 const name = fn.name!.text;
                 const params = fn.parameters.map(p => p.name.getText());
                 const body = fn.body ? this.transformNode(fn.body) : {type: 'Empty'} as REmptyStatement;
-                return { type: 'FunctionDeclaration', name, params, body: body };
+
+                const definition = { type: 'FunctionDefinition', params, body } as RFunctionDefinition;
+                return { type: 'Assignment', name, value: definition };
             }
             case ts.SyntaxKind.ArrowFunction: {
+                // In R, arrow functions are just anonymous (unassigned) functions.
                 const fn = node as ts.ArrowFunction;
                 const params = fn.parameters.map(p => p.name.getText());
                 const body = fn.body ? this.transformNode(fn.body) : { type: 'Empty' } as REmptyStatement;
                 
-                return { type: 'ArrowFunction', params, body: body };
+                return { type: 'FunctionDefinition', params, body: body };
             }
             case ts.SyntaxKind.ExpressionStatement: {
                 const expr = (node as ts.ExpressionStatement).expression;

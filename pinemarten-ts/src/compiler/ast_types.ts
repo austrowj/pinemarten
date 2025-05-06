@@ -1,14 +1,13 @@
 // Define types for our simplified R AST.
 
-export interface RVariableDeclaration {
-    type: 'VariableDeclaration';
+export interface RAssignment {
+    type: 'Assignment';
     name: string;
     value: RExpression;
 }
 
-export interface RFunctionDeclaration {
-    type: 'FunctionDeclaration';
-    name: string;
+export interface RFunctionDefinition {
+    type: 'FunctionDefinition';
     params: string[];
     body: RStatement | RExpression;
 }
@@ -45,21 +44,21 @@ export interface RDataColumn {
     // These come from the property assignments in an object literal.
     type: 'DataColumn';
     name: string;
-    value: RExpression | RStatement;
+    value: RStatement;
 }
 
 export interface RDataLiteral {
     // These come from object literals.
     // It's extremely likely that we'll want to use object literals for something else too later.
     type: 'DataLiteral';
-    columnAssignments: (RExpression | RStatement)[]; // Rely on TS syntax to validate that these can only be PropertyAssignments.
+    columnAssignments: RStatement[]; // Rely on TS syntax to validate that these can only be PropertyAssignments.
 }
 
 export interface RIfStatement {
     type: 'IfStatement';
     condition: RExpression;
-    thenBranch: RStatement | RExpression;
-    elseBranch: RStatement | RExpression;
+    thenBranch: RStatement;
+    elseBranch: RStatement;
 }
 
 export interface RPropertyAccess {
@@ -69,15 +68,9 @@ export interface RPropertyAccess {
     isFunction: boolean;
 }
 
-export interface RArrowFunction {
-    type: 'ArrowFunction';
-    params: string[];
-    body: RStatement | RExpression;
-}
-
 export interface RBlock {
     type: 'Block';
-    statements: (RStatement | RExpression)[];
+    statements: RStatement[];
 }
 
 export interface REmptyStatement {
@@ -88,17 +81,17 @@ export type RExpression =
     | RLiteral
     | RIdentifier
     | RBinaryExpression
+    | RFunctionDefinition
     | RFunctionCall
     | RPropertyAccess
-    | RArrowFunction
     | RParenthesizedExpression
     | RDataColumn
     | RDataLiteral
 ;
 
 export type RStatement =
-    | RVariableDeclaration
-    | RFunctionDeclaration
+    | RExpression
+    | RAssignment
     | RIfStatement
     | RBlock
     | REmptyStatement
@@ -107,9 +100,13 @@ export type RStatement =
 export function isStatement(node: RStatement | RExpression | undefined): node is RStatement {
     if (node === undefined) { return false; }
     return (
-        node.type === 'VariableDeclaration'
-        || node.type === 'FunctionDeclaration'
+        node.type === 'Assignment'
         || node.type === 'IfStatement'
         || node.type === 'Block'
     );
+}
+
+export function isExpression(node: RStatement): node is RExpression {
+    if (node === undefined) { return false; }
+    return !isStatement(node);
 }

@@ -28,9 +28,10 @@ export class RTransformer {
         switch (node.type) {
             
             case 'Assignment': return {
-                type: 'RAssignment',
-                name: node.name,
-                value: this.transformNode(node.value)
+                type: 'RBinaryExpression',
+                operator: '<-',
+                left: {type: 'RIdentifier', name: node.name},
+                right: this.transformNode(node.value)
             };
             case 'BinaryExpression': return {
                 type: 'RBinaryExpression',

@@ -33,12 +33,6 @@ const p = new Printer('    '); // The actual printer instance we will use.
 
 function printExpression(expr: RExpression): RExpression { // Return the original expression to verify coverage.
     switch (expr.type) {
-        case 'RAssignment': {
-            p.append(expr.name);
-            p.append(' <- ');
-            printExpression(expr.value);
-            return expr;
-        }
         case 'RIfStatement': {
             p.append('if (');
             printExpression(expr.condition);

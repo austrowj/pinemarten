@@ -1,11 +1,5 @@
 // Define types for our simplified R AST.
 
-export interface RAssignment {
-    type: 'RAssignment';
-    name: string;
-    value: RExpression;
-}
-
 export interface RFunctionDefinition {
     type: 'RFunctionDefinition';
     params: string[];
@@ -87,7 +81,6 @@ export type RExpression =
     | RParenthesizedExpression
     | RDataColumn
     | RDataLiteral
-    | RAssignment
     | RIfStatement
     | RBlock
     | REmptyStatement

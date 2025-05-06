@@ -31,7 +31,7 @@ export class IntermediateTransformer {
     }
 
     // Transformer function
-    private transformNode(node: ts.Node): Expression | Expression {
+    private transformNode(node: ts.Node): Expression {
         switch (node.kind) {
             case ts.SyntaxKind.VariableStatement: {
                 const decl = (node as ts.VariableStatement).declarationList.declarations[0];

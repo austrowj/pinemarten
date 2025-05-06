@@ -67,7 +67,7 @@ export class RTransformer {
                 type: 'RPropertyAccess',
                 object: this.transformNode(node.object),
                 property: node.property,
-                isFunction: node.isFunction
+                isFunction: node.isFunction // TODO: convert property access to a binary operator upstream (using '$' or '|>')
             };
 
             case 'Identifier':      return {type: 'RIdentifier', name: node.name};

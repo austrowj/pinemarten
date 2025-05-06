@@ -36,7 +36,7 @@ export class IntermediateTransformer {
             case ts.SyntaxKind.VariableStatement: {
                 const decl = (node as ts.VariableStatement).declarationList.declarations[0];
                 const name = (decl.name as ts.Identifier).text;
-                const value = this.transformNode(decl.initializer!) as Expression;
+                const value = this.transformNode(decl.initializer!);
                 return { type: 'Assignment', name, value };
             }
             case ts.SyntaxKind.FunctionDeclaration: {
@@ -63,7 +63,7 @@ export class IntermediateTransformer {
             case ts.SyntaxKind.CallExpression: {
                 const call = node as ts.CallExpression;
                 const functionName = this.transformNode(call.expression);
-                const args = call.arguments.map(arg => this.transformNode(arg) as Expression);
+                const args = call.arguments.map(arg => this.transformNode(arg));
                 return { type: 'FunctionCall', functionName, arguments: args };
             }
             case ts.SyntaxKind.BinaryExpression: {
@@ -71,16 +71,17 @@ export class IntermediateTransformer {
                 return {
                     type: 'BinaryExpression',
                     operator: bin.operatorToken.getText(),
-                    left: this.transformNode(bin.left) as Expression,
-                    right: this.transformNode(bin.right) as Expression,
+                    left: this.transformNode(bin.left),
+                    right: this.transformNode(bin.right),
                 };
             }
             case ts.SyntaxKind.PropertyAccessExpression: {
                 const pa = node as ts.PropertyAccessExpression;
-                const object = this.transformNode(pa.expression) as Expression;
+                const object = this.transformNode(pa.expression);
                 const property = pa.name.text;
 
                 // TODO: this is where we need to detect access to special methods and perform our compiler magic.
+                // !! Create special nodes for these in the IR AST !!
                 const isFunction = this.typeChecker.getSignaturesOfType(this.typeChecker.getTypeAtLocation(pa.name), ts.SignatureKind.Call).length > 0;
 
                 return {
@@ -92,7 +93,7 @@ export class IntermediateTransformer {
             }
             case ts.SyntaxKind.IfStatement: {
                 const ifNode = node as ts.IfStatement;
-                const condition = this.transformNode(ifNode.expression) as Expression;
+                const condition = this.transformNode(ifNode.expression);
 
                 const thenBranch = this.transformNode(ifNode.thenStatement);
                 const elseBranch = ifNode.elseStatement ? this.transformNode(ifNode.elseStatement) : ({type: 'EmptyStatement'} as EmptyStatement);
@@ -101,7 +102,7 @@ export class IntermediateTransformer {
             }
             case ts.SyntaxKind.ReturnStatement: {
                 const returnNode = node as ts.ReturnStatement;
-                const expression = this.transformNode(returnNode.expression!) as Expression;
+                const expression = this.transformNode(returnNode.expression!);
                 return { type: 'FunctionCall', functionName: {type: 'Identifier', name: 'return'}, arguments: [expression] };
             }
             case ts.SyntaxKind.Block: {

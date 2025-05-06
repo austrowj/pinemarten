@@ -107,12 +107,21 @@ export class RTransformer {
                 return { type: 'Block', statements: statements}
             }
             case ts.SyntaxKind.NumericLiteral:
-            case ts.SyntaxKind.StringLiteral:
-            case ts.SyntaxKind.TrueKeyword:
-            case ts.SyntaxKind.FalseKeyword: {
+            case ts.SyntaxKind.StringLiteral: {
                 const lit = node as ts.LiteralExpression;
                 return { type: 'Literal', text: lit.getText() };
             }
+
+            // Boolean literals have to be handled separately because they have different names in R.
+            case ts.SyntaxKind.TrueKeyword: {
+                const lit = node as ts.LiteralExpression;
+                return { type: 'Literal', text: 'TRUE' };
+            }
+            case ts.SyntaxKind.FalseKeyword: {
+                const lit = node as ts.LiteralExpression;
+                return { type: 'Literal', text: 'FALSE' };
+            }
+            
             case ts.SyntaxKind.Identifier: {
                 return { type: 'Identifier', name: (node as ts.Identifier).text };
             }

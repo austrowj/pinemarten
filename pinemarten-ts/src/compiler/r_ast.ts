@@ -1,48 +1,48 @@
 // Define types for our simplified R AST.
 
 export interface RAssignment {
-    type: 'Assignment';
+    type: 'RAssignment';
     name: string;
-    value: RExpression;
+    value: RStatement;
 }
 
 export interface RFunctionDefinition {
-    type: 'FunctionDefinition';
+    type: 'RFunctionDefinition';
     params: string[];
-    body: RStatement | RExpression;
+    body: RStatement;
 }
 
 export interface RFunctionCall {
-    type: 'FunctionCall';
-    functionName: RExpression | RStatement;
-    arguments: RExpression[];
+    type: 'RFunctionCall';
+    functionName: RStatement;
+    arguments: RStatement[];
 }
 
 export interface RBinaryExpression {
-    type: 'BinaryExpression';
+    type: 'RBinaryExpression';
     operator: string;
-    left: RExpression;
-    right: RExpression;
+    left: RStatement;
+    right: RStatement;
 }
 
 export interface RParenthesizedExpression {
-    type: 'ParenthesizedExpression';
+    type: 'RParenthesizedExpression';
     inner: RStatement | RExpression;
 }
 
 export interface RLiteral {
-    type: 'Literal';
+    type: 'RLiteral';
     text: string;
 }
 
 export interface RIdentifier {
-    type: 'Identifier';
+    type: 'RIdentifier';
     name: string;
 }
 
 export interface RDataColumn {
     // These come from the property assignments in an object literal.
-    type: 'DataColumn';
+    type: 'RDataColumn';
     name: string;
     value: RStatement;
 }
@@ -50,31 +50,31 @@ export interface RDataColumn {
 export interface RDataLiteral {
     // These come from object literals.
     // It's extremely likely that we'll want to use object literals for something else too later.
-    type: 'DataLiteral';
+    type: 'RDataLiteral';
     columnAssignments: RStatement[]; // Rely on TS syntax to validate that these can only be PropertyAssignments.
 }
 
 export interface RIfStatement {
-    type: 'IfStatement';
-    condition: RExpression;
+    type: 'RIfStatement';
+    condition: RStatement;
     thenBranch: RStatement;
     elseBranch: RStatement;
 }
 
 export interface RPropertyAccess {
-    type: 'PropertyAccess';
-    object: RExpression;
+    type: 'RPropertyAccess';
+    object: RStatement;
     property: string;
     isFunction: boolean;
 }
 
 export interface RBlock {
-    type: 'Block';
+    type: 'RBlock';
     statements: RStatement[];
 }
 
 export interface REmptyStatement {
-    type: 'Empty';
+    type: 'REmptyStatement';
 }
 
 export type RExpression =
@@ -100,9 +100,9 @@ export type RStatement =
 export function isStatement(node: RStatement | RExpression | undefined): node is RStatement {
     if (node === undefined) { return false; }
     return (
-        node.type === 'Assignment'
-        || node.type === 'IfStatement'
-        || node.type === 'Block'
+        node.type === 'RAssignment'
+        || node.type === 'RIfStatement'
+        || node.type === 'RBlock'
     );
 }
 

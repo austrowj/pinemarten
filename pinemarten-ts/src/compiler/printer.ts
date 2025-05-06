@@ -1,4 +1,4 @@
-import { isStatement, isExpression, RStatement, RExpression, RFunctionCall } from './ast_types';
+import { isStatement, isExpression, RStatement, RExpression, RFunctionCall } from './r_ast';
 
 // State-based printer.
 // There is probably a better design but idk what it is and this works for now.
@@ -34,24 +34,24 @@ const p = new Printer('    '); // The actual printer instance we will use.
 function printStatement(stmt: RStatement): RStatement { // Return original statement to statically verify all cases are covered.
     if (isExpression(stmt)) { return printExpression(stmt); }
     switch (stmt.type) {
-        case 'Assignment': {
+        case 'RAssignment': {
             p.append(stmt.name);
             p.append(' <- ');
             printExpression(stmt.value);
             return stmt;
         }
-        case 'IfStatement': {
+        case 'RIfStatement': {
             p.append('if (');
             printExpression(stmt.condition);
             p.append(') ');
             printRNode(stmt.thenBranch);
-            if (stmt.elseBranch.type != 'Empty') {
+            if (stmt.elseBranch.type != 'REmptyStatement') {
                 p.append(' else ');
                 printRNode(stmt.elseBranch);
             }
             return stmt;
         }
-        case 'Block': {
+        case 'RBlock': {
             p.append('{');
             p.flush();
             p.indent();
@@ -64,7 +64,7 @@ function printStatement(stmt: RStatement): RStatement { // Return original state
             p.flush();
             return stmt;
         }
-        case 'Empty': {
+        case 'REmptyStatement': {
             return stmt;
         }
     }
@@ -82,36 +82,37 @@ function printFunctionCall(fc: RFunctionCall): RFunctionCall {
     return fc;
 }
 
-function printExpression(expr: RExpression): RExpression { // Return the original expression to verify coverage.
+function printExpression(expr: RExpression | RStatement): RExpression | RStatement { // Return the original expression to verify coverage.
+    if (!isExpression(expr)) { return printStatement(expr); }
     switch (expr.type) {
-        case 'Literal': {
+        case 'RLiteral': {
             p.append(expr.text);
             return expr;
         }
-        case 'Identifier': {
+        case 'RIdentifier': {
             p.append(expr.name);
             return expr;
         }
-        case 'BinaryExpression': {
+        case 'RBinaryExpression': {
             printExpression(expr.left);
             p.append(` ${expr.operator} `);
             printExpression(expr.right);
             return expr;
         }
-        case 'FunctionDefinition': {
+        case 'RFunctionDefinition': {
             p.append(`function(${expr.params.join(', ')}) `);
             printRNode(expr.body);
             return expr;
         }
-        case 'FunctionCall': {
+        case 'RFunctionCall': {
             printFunctionCall(expr);
             return expr;
         }
-        case 'PropertyAccess': {
+        case 'RPropertyAccess': {
             // In R, the property access operator '$' has higher precedence than the pipe '|>'.
             // However, these are both '.' operators in TS which are always evaluated left to right.
             // To enforce the correct evaluation order, check for nontrivial property access and wrap the preceeding expression in parentheses.
-            if (expr.object.type == 'Identifier' || expr.isFunction) {
+            if (expr.object.type == 'RIdentifier' || expr.isFunction) {
                 printExpression(expr.object);
             } else {
                 p.append('(');
@@ -124,19 +125,19 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
             p.append(expr.property);
             return expr;
         }
-        case 'ParenthesizedExpression': {
+        case 'RParenthesizedExpression': {
             p.append('(');
             printRNode(expr.inner);
             p.append(')');
             return expr;
         }
-        case 'DataColumn': {
+        case 'RDataColumn': {
             p.append(expr.name);
             p.append(' = ');
             printRNode(expr.value);
             return expr;
         }
-        case 'DataLiteral': {
+        case 'RDataLiteral': {
             p.append('dataframe('); // Function in our own R library allows use of different R backends.
             p.flush();
             p.indent();

@@ -1,152 +1,92 @@
-import * as ts from 'typescript';
-import {isStatement, RStatement, RExpression, REmptyStatement, RFunctionDefinition} from './ast_types';
+import * as ir_ast from './ir_ast';
+import * as r_ast from './r_ast';
 
 export class RTransformer {
 
-    private program: ts.Program;
-    private sourceFile: ts.SourceFile;
-    private typeChecker: ts.TypeChecker;
-    private ast: RStatement[];
+    private rAst: r_ast.RStatement[];
 
     // Entry point
-    constructor(filename: string) {
-
-        this.program = ts.createProgram([filename], {});
-        this.sourceFile = this.program.getSourceFile(filename)!;
-        this.typeChecker = this.program.getTypeChecker();
-        this.ast = this.transformAST();
+    constructor(ast: ir_ast.Statement[], private context: any = {}) {
+        this.rAst = this.transform(ast);
     }
 
-    public getAST() { return this.ast; }
+    public getAST() { return this.rAst; }
 
-    private transformAST(): RStatement[] {
-        const rAst: RStatement[] = [];
-        this.sourceFile.forEachChild(node => {
+    private transform(ast: ir_ast.Statement[]): r_ast.RStatement[] {
+        const rAst: r_ast.RStatement[] = [];
+        ast.forEach(node => {
             const transformed = this.transformNode(node);
-            if (transformed && isStatement(transformed)) {
+            if (transformed && r_ast.isStatement(transformed)) {
                 rAst.push(transformed);
             }
         });
         return rAst;
     }
 
-    // Transformer function
-    private transformNode(node: ts.Node): RStatement | RExpression {
-        switch (node.kind) {
-            case ts.SyntaxKind.VariableStatement: {
-                const decl = (node as ts.VariableStatement).declarationList.declarations[0];
-                const name = (decl.name as ts.Identifier).text;
-                const value = this.transformNode(decl.initializer!) as RExpression;
-                return { type: 'Assignment', name, value };
-            }
-            case ts.SyntaxKind.FunctionDeclaration: {
-                const fn = node as ts.FunctionDeclaration;
-                const name = fn.name!.text;
-                const params = fn.parameters.map(p => p.name.getText());
-                const body = fn.body ? this.transformNode(fn.body) : {type: 'Empty'} as REmptyStatement;
-
-                const definition = { type: 'FunctionDefinition', params, body } as RFunctionDefinition;
-                return { type: 'Assignment', name, value: definition };
-            }
-            case ts.SyntaxKind.ArrowFunction: {
-                // In R, arrow functions are just anonymous (unassigned) functions.
-                const fn = node as ts.ArrowFunction;
-                const params = fn.parameters.map(p => p.name.getText());
-                const body = fn.body ? this.transformNode(fn.body) : { type: 'Empty' } as REmptyStatement;
-                
-                return { type: 'FunctionDefinition', params, body: body };
-            }
-            case ts.SyntaxKind.ExpressionStatement: {
-                const expr = (node as ts.ExpressionStatement).expression;
-                return this.transformNode(expr);
-            }
-            case ts.SyntaxKind.CallExpression: {
-                const call = node as ts.CallExpression;
-                const functionName = this.transformNode(call.expression);
-                const args = call.arguments.map(arg => this.transformNode(arg) as RExpression);
-                return { type: 'FunctionCall', functionName, arguments: args };
-            }
-            case ts.SyntaxKind.BinaryExpression: {
-                const bin = node as ts.BinaryExpression;
-                return {
-                    type: 'BinaryExpression',
-                    operator: bin.operatorToken.getText(),
-                    left: this.transformNode(bin.left) as RExpression,
-                    right: this.transformNode(bin.right) as RExpression,
-                };
-            }
-            case ts.SyntaxKind.PropertyAccessExpression: {
-                const pa = node as ts.PropertyAccessExpression;
-                const object = this.transformNode(pa.expression) as RExpression;
-                const property = pa.name.text;
-                const isFunction = this.typeChecker.getSignaturesOfType(this.typeChecker.getTypeAtLocation(pa.name), ts.SignatureKind.Call).length > 0;
-
-                return {
-                    type: 'PropertyAccess',
-                    object,
-                    property,
-                    isFunction,
-                };
-            }
-            case ts.SyntaxKind.IfStatement: {
-                const ifNode = node as ts.IfStatement;
-                const condition = this.transformNode(ifNode.expression) as RExpression;
-
-                const thenBranch = this.transformNode(ifNode.thenStatement);
-                const elseBranch = ifNode.elseStatement ? this.transformNode(ifNode.elseStatement) : ({type: 'Empty'} as REmptyStatement);
-
-                return { type: 'IfStatement', condition, thenBranch, elseBranch };
-            }
-            case ts.SyntaxKind.ReturnStatement: {
-                const returnNode = node as ts.ReturnStatement;
-                const expression = this.transformNode(returnNode.expression!) as RExpression;
-                return { type: 'FunctionCall', functionName: {type: 'Identifier', name: 'return'}, arguments: [expression] };
-            }
-            case ts.SyntaxKind.Block: {
-                const statements = (node as ts.Block).statements.map(x => this.transformNode(x));
-                return { type: 'Block', statements: statements}
-            }
-            case ts.SyntaxKind.NumericLiteral:
-            case ts.SyntaxKind.StringLiteral: {
-                const lit = node as ts.LiteralExpression;
-                return { type: 'Literal', text: lit.getText() };
-            }
-
-            // Boolean literals have to be handled separately because they have different names in R.
-            case ts.SyntaxKind.TrueKeyword: {
-                const lit = node as ts.LiteralExpression;
-                return { type: 'Literal', text: 'TRUE' };
-            }
-            case ts.SyntaxKind.FalseKeyword: {
-                const lit = node as ts.LiteralExpression;
-                return { type: 'Literal', text: 'FALSE' };
-            }
+    // Transformer function (TODO)
+    private transformNode(node: ir_ast.Statement): r_ast.RStatement {
+        switch (node.type) {
             
-            case ts.SyntaxKind.Identifier: {
-                return { type: 'Identifier', name: (node as ts.Identifier).text };
-            }
-            case ts.SyntaxKind.ParenthesizedExpression: {
-                return { type: 'ParenthesizedExpression', inner: this.transformNode((node as ts.ParenthesizedExpression).expression) }
-            }
-            case ts.SyntaxKind.PropertyAssignment: {
-                const prop = node as ts.PropertyAssignment;
-                return { type: 'DataColumn', name: prop.name.getText(), value: this.transformNode(prop.initializer) }
-            }
-            case ts.SyntaxKind.ObjectLiteralExpression: {
-                const obj = node as ts.ObjectLiteralExpression;
-                const props = obj.properties.map(x => this.transformNode(x));
-                return { type: 'DataLiteral', columnAssignments: props }
-            }
-            case ts.SyntaxKind.AsExpression: {
-                return this.transformNode((node as ts.AsExpression).expression);
-            }
+            case 'Assignment': return {
+                type: 'RAssignment',
+                name: node.name,
+                value: this.transformNode(node.value)
+            };
+            case 'BinaryExpression': return {
+                type: 'RBinaryExpression',
+                operator: node.operator,
+                left: this.transformNode(node.left),
+                right: this.transformNode(node.right)
+            };
+            case 'Block': return {
+                type: 'RBlock',
+                statements: node.statements.map(x => this.transformNode(x))
+            };
+            case 'FunctionCall': return {
+                type: 'RFunctionCall',
+                functionName: this.transformNode(node.functionName),
+                arguments: node.arguments.map(x => this.transformNode(x))
+            };
+            case 'FunctionDefinition': return {
+                type: 'RFunctionDefinition',
+                params: node.params,
+                body: this.transformNode(node.body)
+            };
+            case 'IfStatement': return {
+                type: 'RIfStatement',
+                condition: this.transformNode(node.condition),
+                thenBranch: this.transformNode(node.thenBranch),
+                elseBranch: this.transformNode(node.elseBranch)
+            };
+            case 'ParenthesizedExpression': return {
+                type: 'RParenthesizedExpression',
+                inner: this.transformNode(node.inner)
+            };
+            case 'PropertyAccess': return {
+                type: 'RPropertyAccess',
+                object: this.transformNode(node.object),
+                property: node.property,
+                isFunction: node.isFunction
+            };
 
-            // Ignore these elements
-            case ts.SyntaxKind.ImportDeclaration:
-            case ts.SyntaxKind.EndOfFileToken:
-                return { type: 'Empty' };
-            default:
-                throw Error(`Unsupported syntax ("${ts.SyntaxKind[node.kind]}"), code:\n${node.getText()}`);
+            case 'Identifier':      return {type: 'RIdentifier', name: node.name};
+            case 'Literal':         return {type: 'RLiteral', text: node.text};
+            case 'EmptyStatement':  return {type: 'REmptyStatement'};
+
+            // These are ambiguous; if any made it through the transformation process unaltered, it's an error.
+            case 'ObjectLiteral': {
+                return {
+                    type: 'RDataLiteral',
+                    columnAssignments: node.properties.map(x => this.transformNode(x))
+                };
+            }
+            case 'PropertyAssignment': {
+                return {
+                    type: 'RDataColumn',
+                    name: node.name,
+                    value: this.transformNode(node.value)
+                };
+            }
         }
     }
 

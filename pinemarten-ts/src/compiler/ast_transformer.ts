@@ -3,20 +3,20 @@ import * as r_ast from './r_ast';
 
 export class RTransformer {
 
-    private rAst: r_ast.RStatement[];
+    private rAst: r_ast.RExpression[];
 
     // Entry point
-    constructor(ast: ir_ast.Statement[], private context: any = {}) {
+    constructor(ast: ir_ast.Expression[], private context: any = {}) {
         this.rAst = this.transform(ast);
     }
 
     public getAST() { return this.rAst; }
 
-    private transform(ast: ir_ast.Statement[]): r_ast.RStatement[] {
-        const rAst: r_ast.RStatement[] = [];
+    private transform(ast: ir_ast.Expression[]): r_ast.RExpression[] {
+        const rAst: r_ast.RExpression[] = [];
         ast.forEach(node => {
             const transformed = this.transformNode(node);
-            if (transformed && r_ast.isStatement(transformed)) {
+            if (transformed) {
                 rAst.push(transformed);
             }
         });
@@ -24,7 +24,7 @@ export class RTransformer {
     }
 
     // Transformer function (TODO)
-    private transformNode(node: ir_ast.Statement): r_ast.RStatement {
+    private transformNode(node: ir_ast.Expression): r_ast.RExpression {
         switch (node.type) {
             
             case 'Assignment': return {

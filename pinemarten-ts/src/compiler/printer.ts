@@ -1,4 +1,4 @@
-import { isStatement, isExpression, RStatement, RExpression, RFunctionCall } from './r_ast';
+import { RExpression } from './r_ast';
 
 // State-based printer.
 // There is probably a better design but idk what it is and this works for now.
@@ -31,60 +31,41 @@ class Printer {
 
 const p = new Printer('    '); // The actual printer instance we will use.
 
-function printStatement(stmt: RStatement): RStatement { // Return original statement to statically verify all cases are covered.
-    if (isExpression(stmt)) { return printExpression(stmt); }
-    switch (stmt.type) {
+function printExpression(expr: RExpression): RExpression { // Return the original expression to verify coverage.
+    switch (expr.type) {
         case 'RAssignment': {
-            p.append(stmt.name);
+            p.append(expr.name);
             p.append(' <- ');
-            printExpression(stmt.value);
-            return stmt;
+            printExpression(expr.value);
+            return expr;
         }
         case 'RIfStatement': {
             p.append('if (');
-            printExpression(stmt.condition);
+            printExpression(expr.condition);
             p.append(') ');
-            printRNode(stmt.thenBranch);
-            if (stmt.elseBranch.type != 'REmptyStatement') {
+            printExpression(expr.thenBranch);
+            if (expr.elseBranch.type != 'REmptyStatement') {
                 p.append(' else ');
-                printRNode(stmt.elseBranch);
+                printExpression(expr.elseBranch);
             }
-            return stmt;
+            return expr;
         }
         case 'RBlock': {
             p.append('{');
             p.flush();
             p.indent();
-            stmt.statements.forEach(x => {
-                printRNode(x);
+            expr.statements.forEach(x => {
+                printExpression(x);
                 p.flush();
             });
             p.unindent();
             p.append('}');
             p.flush();
-            return stmt;
+            return expr;
         }
         case 'REmptyStatement': {
-            return stmt;
+            return expr;
         }
-    }
-}
-
-function printFunctionCall(fc: RFunctionCall): RFunctionCall {
-
-    printRNode(fc.functionName);
-    p.append('(');
-    fc.arguments.forEach((x, i) => {
-        printExpression(x);
-        if (i < fc.arguments.length - 1) { p.append(', '); }
-    })
-    p.append(')');
-    return fc;
-}
-
-function printExpression(expr: RExpression | RStatement): RExpression | RStatement { // Return the original expression to verify coverage.
-    if (!isExpression(expr)) { return printStatement(expr); }
-    switch (expr.type) {
         case 'RLiteral': {
             p.append(expr.text);
             return expr;
@@ -101,11 +82,17 @@ function printExpression(expr: RExpression | RStatement): RExpression | RStateme
         }
         case 'RFunctionDefinition': {
             p.append(`function(${expr.params.join(', ')}) `);
-            printRNode(expr.body);
+            printExpression(expr.body);
             return expr;
         }
         case 'RFunctionCall': {
-            printFunctionCall(expr);
+            printExpression(expr.functionName);
+            p.append('(');
+            expr.arguments.forEach((x, i) => {
+                printExpression(x);
+                if (i < expr.arguments.length - 1) { p.append(', '); }
+            })
+            p.append(')');
             return expr;
         }
         case 'RPropertyAccess': {
@@ -127,14 +114,14 @@ function printExpression(expr: RExpression | RStatement): RExpression | RStateme
         }
         case 'RParenthesizedExpression': {
             p.append('(');
-            printRNode(expr.inner);
+            printExpression(expr.inner);
             p.append(')');
             return expr;
         }
         case 'RDataColumn': {
             p.append(expr.name);
             p.append(' = ');
-            printRNode(expr.value);
+            printExpression(expr.value);
             return expr;
         }
         case 'RDataLiteral': {
@@ -142,7 +129,7 @@ function printExpression(expr: RExpression | RStatement): RExpression | RStateme
             p.flush();
             p.indent();
             expr.columnAssignments.forEach((x, i) => {
-                printRNode(x);
+                printExpression(x);
                 if (i < expr.columnAssignments.length - 1) { p.append(', '); }
                 p.flush();
             });
@@ -153,14 +140,9 @@ function printExpression(expr: RExpression | RStatement): RExpression | RStateme
     }
 }
 
-function printRNode(node: RStatement | RExpression): void {
-    if (isStatement(node)) { printStatement(node);  }
-    else                   { printExpression(node); }
-}
-
-export function printR(ast: RStatement[]): string {
+export function printR(ast: RExpression[]): string {
     ast.forEach(x => {
-        printStatement(x);
+        printExpression(x);
         p.flush();
     });
     return p.getOutput();

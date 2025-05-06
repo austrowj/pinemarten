@@ -1,12 +1,12 @@
 import * as ts from 'typescript';
-import {isStatement, Statement, Expression, EmptyStatement, FunctionDefinition} from './ir_ast';
+import {Expression, EmptyStatement, FunctionDefinition} from './ir_ast';
 
 export class IntermediateTransformer {
 
     private program: ts.Program;
     private sourceFile: ts.SourceFile;
     private typeChecker: ts.TypeChecker;
-    private ast: Statement[];
+    private ast: Expression[];
 
     // Entry point
     constructor(filename: string) {
@@ -19,11 +19,11 @@ export class IntermediateTransformer {
 
     public getAST() { return this.ast; }
 
-    private transformAST(): Statement[] {
-        const rAst: Statement[] = [];
+    private transformAST(): Expression[] {
+        const rAst: Expression[] = [];
         this.sourceFile.forEachChild(node => {
             const transformed = this.transformNode(node);
-            if (transformed && isStatement(transformed)) {
+            if (transformed) {
                 rAst.push(transformed);
             }
         });
@@ -31,7 +31,7 @@ export class IntermediateTransformer {
     }
 
     // Transformer function
-    private transformNode(node: ts.Node): Statement | Expression {
+    private transformNode(node: ts.Node): Expression | Expression {
         switch (node.kind) {
             case ts.SyntaxKind.VariableStatement: {
                 const decl = (node as ts.VariableStatement).declarationList.declarations[0];

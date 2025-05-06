@@ -9,12 +9,12 @@ export interface Assignment {
 export interface FunctionDefinition {
     type: 'FunctionDefinition';
     params: string[];
-    body: Statement | Expression;
+    body: Expression | Expression;
 }
 
 export interface FunctionCall {
     type: 'FunctionCall';
-    functionName: Expression | Statement;
+    functionName: Expression | Expression;
     arguments: Expression[];
 }
 
@@ -27,7 +27,7 @@ export interface BinaryExpression {
 
 export interface ParenthesizedExpression {
     type: 'ParenthesizedExpression';
-    inner: Statement | Expression;
+    inner: Expression | Expression;
 }
 
 export interface Literal {
@@ -44,19 +44,19 @@ export interface PropertyAssignment {
     // These come from the property assignments in an object literal.
     type: 'PropertyAssignment';
     name: string;
-    value: Statement;
+    value: Expression;
 }
 
 export interface ObjectLiteral {
     type: 'ObjectLiteral';
-    properties: Statement[]; // Rely on TS syntax to validate that these can only be PropertyAssignments.
+    properties: Expression[]; // Rely on TS syntax to validate that these can only be PropertyAssignments.
 }
 
 export interface IfStatement {
     type: 'IfStatement';
     condition: Expression;
-    thenBranch: Statement;
-    elseBranch: Statement;
+    thenBranch: Expression;
+    elseBranch: Expression;
 }
 
 export interface PropertyAccess {
@@ -68,7 +68,7 @@ export interface PropertyAccess {
 
 export interface Block {
     type: 'Block';
-    statements: Statement[];
+    statements: Expression[];
 }
 
 export interface EmptyStatement {
@@ -85,31 +85,13 @@ export type Expression =
     | ParenthesizedExpression
     | PropertyAssignment
     | ObjectLiteral
-;
-
-export type Statement =
-    | Expression
     | Assignment
     | IfStatement
     | Block
     | EmptyStatement
 ;
 
-export function isStatement(node: Statement | Expression | undefined): node is Statement {
-    if (node === undefined) { return false; }
-    return (
-        node.type === 'Assignment'
-        || node.type === 'IfStatement'
-        || node.type === 'Block'
-    );
-}
-
-export function isExpression(node: Statement): node is Expression {
-    if (node === undefined) { return false; }
-    return !isStatement(node);
-}
-
-export function childrenOf(node: Statement): Statement[] {
+export function childrenOf(node: Expression): Expression[] {
     switch (node.type) {
         case 'Assignment':              return [node.value];
         case 'BinaryExpression':        return [node.left, node.right];

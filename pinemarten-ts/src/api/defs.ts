@@ -1,4 +1,4 @@
-import { KeyOfType, Reshape, Join, Where, WhereEq } from '../schema_operations'
+import { KeyOfType, Reshape, Join, Where, WhereEq } from './schema_operations'
 
 type Mutate<T, S> =
     & {[Field in Exclude<keyof T, keyof S>]: T[Field]}
@@ -42,7 +42,7 @@ export class Dataframe<T> {
 
     /* Joins */
 
-    public join_on<S, L extends keyof (T | S) & string>(other: Dataframe<S>, key: L, kind: string = 'left') {
+    public joinOn<S, L extends keyof (T | S) & string>(other: Dataframe<S>, key: L, kind: string = 'left') {
         return new Dataframe<Join<T, S, L>>();
     }
 

@@ -1,4 +1,4 @@
-import {Dataframe} from '../src/compiler/langdefs';
+import {Dataframe} from '../src/api/defs';
 
 /* Testing code */
 
@@ -33,7 +33,7 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
     df2.whereEq('n', 1).schema; // type of n is now literal '1'
     df2.where(x => x.n == 1 && x.mystr.endsWith('.xlsx')).schema; // column schema is unchanged
 
-    df.with(x => ({ id2: x.id, mystr: '' })).join_on(df2, 'id2').schema;
+    df.with(x => ({ id2: x.id, mystr: '' })).joinOn(df2, 'id2').schema;
     df.join(df2, 'id', 'test').schema;
 
     function test_table_transform<T extends { id?: number, id2?: number }>(df: T) {

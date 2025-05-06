@@ -43,7 +43,7 @@ export class IntermediateTransformer {
                 const fn = node as ts.FunctionDeclaration;
                 const name = fn.name!.text;
                 const params = fn.parameters.map(p => p.name.getText());
-                const body = fn.body ? this.transformNode(fn.body) : {type: 'EmptyStatement'} as EmptyStatement;
+                const body = this.transformNode(fn.body!); // TODO: can there be a valid function declaration with no body??
 
                 const definition = { type: 'FunctionDefinition', params, body } as FunctionDefinition;
                 return { type: 'Assignment', name, value: definition };
@@ -52,7 +52,7 @@ export class IntermediateTransformer {
                 // In R, arrow functions are just anonymous (unassigned) functions.
                 const fn = node as ts.ArrowFunction;
                 const params = fn.parameters.map(p => p.name.getText());
-                const body = fn.body ? this.transformNode(fn.body) : { type: 'EmptyStatement' } as EmptyStatement;
+                const body = this.transformNode(fn.body);
                 
                 return { type: 'FunctionDefinition', params, body: body };
             }
@@ -79,6 +79,8 @@ export class IntermediateTransformer {
                 const pa = node as ts.PropertyAccessExpression;
                 const object = this.transformNode(pa.expression) as Expression;
                 const property = pa.name.text;
+
+                // TODO: this is where we need to detect access to special methods and perform our compiler magic.
                 const isFunction = this.typeChecker.getSignaturesOfType(this.typeChecker.getTypeAtLocation(pa.name), ts.SignatureKind.Call).length > 0;
 
                 return {

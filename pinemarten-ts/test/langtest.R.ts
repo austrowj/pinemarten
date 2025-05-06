@@ -14,28 +14,28 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
     const df2 = df
         .as(x => ({
             id2: test_transform(x),
-            n: x.name,
+            n0: x.name,
             mystr: x.name.repeat(count),
             zz: x.zz
         }))
     
-        .with(x => {
+        .augment(x => {
             const w = 7;
             return {
                 derived: x.mystr.lastIndexOf('g'),
-                n: w
+                n: w // requiring unique column names broke this haha yes perfect
             };
         })
-        .with(x => ({ test: x.n * 0 as 0 }))
+        .augment(x => ({ test: x.n * 0 as 0 }))
     ;
     
     df2.schema;
-    test_transform(df2.with(x => ({ id: 1 })).schema); // only permitted with fields of the expected name and type
+    test_transform(df2.augment(x => ({ id: 1 })).schema); // only permitted with fields of the expected name and type
 
     df2.whereEq('n', 1).schema; // type of n is now literal '1'
     df2.where(x => x.n == 1 && x.mystr.endsWith('.xlsx')).schema; // column schema is unchanged
 
-    df.with(x => ({ id2: x.id, mystr: '' })).joinOn(df2, 'id2').schema;
+    df.augment(x => ({ id2: x.id, mystr: '' })).joinOn(df2, 'id2').schema;
     df.join(df2, 'id', 'test').schema;
 
     function test_table_transform<T extends { id?: number, id2?: number }>(df: T) {

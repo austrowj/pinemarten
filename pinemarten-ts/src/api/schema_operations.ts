@@ -2,13 +2,24 @@
 
 export type KeyOfType<T, R> = string & keyof {[P in keyof T as T[P] extends R ? P : never]: T[P]}
 
+export type Choose<T, Select extends keyof T> =
+    { [K in Select]: T[K] };
+
 // New type that _only_ performs renaming.
 export type Rename<T, S extends {[K in keyof S]: keyof T}> = 
-    & Omit<T, 
-        | S[keyof S] // Exclude the original of each renamed column.
-        | keyof S    // Also have the new column win any name collisions.
-    >
-    & { [K in keyof S]: T[S[K]] }; // Add the new column names.
+    (keyof S & keyof T) extends never ? // Not allowed to use the name of an existing column.
+                                        // (Well, you are allowed, but the static simulation will make no guarantees for you whatsoever.)
+        & Omit<T, S[keyof S]>           // Exclude the original of each renamed column.
+        & { [K in keyof S]: T[S[K]] }   // Add the new column names.
+    : never;
+
+// Restricted version of 'mutate' that only accepts unbound column names.
+export type Augment<T, S> =
+    keyof S & keyof T extends never ? // No overwriting existing columns.
+        & { [K in Exclude<keyof T, keyof S>]: T[K] }
+        & { [K in keyof S]: S[K] }
+    : never
+;
 
 // Type for dplyr select().
 export type Reshape<

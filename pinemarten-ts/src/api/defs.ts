@@ -1,9 +1,4 @@
-import { KeyOfType, Reshape, Rename, Join, Where, WhereEq } from './schema_operations'
-
-type Mutate<T, S> =
-    & {[Field in Exclude<keyof T, keyof S>]: T[Field]}
-    & {[Field in keyof S]: S[Field]}
-;
+import { KeyOfType, Choose, Rename, Augment, Join, Where, WhereEq } from './schema_operations'
 
 export class Dataframe<T> {
     public readonly schema = {} as T;
@@ -11,14 +6,17 @@ export class Dataframe<T> {
     /* Strict API that only permits choosing columns, renaming columns, and adding new columns. */
 
     public choose<S extends keyof T>(names: S[]) {
-        return new Dataframe<Reshape<T, {}, S>>();
+        return new Dataframe<Choose<T, S>>();
     }
 
     public rename<S extends {[K in keyof S]: keyof T}>(newNames: S) {
         return new Dataframe<Rename<T, S>>();
     }
 
-    public augment<S>() {}
+    // It's okay to accept a completely arbitrary function, provided there are no name collisions.
+    public augment<S>(augmentation: (t: T) => S) {
+        return new Dataframe<Augment<T, S>>();
+    }
 
     /* TODO: this API is not friendly for preserving column schema guarantees. */
 
@@ -42,14 +40,6 @@ export class Dataframe<T> {
     */
     public as<S>(selector: (t: T) => S) {
         return new Dataframe<S>();
-    }
-    
-    /*
-        Selects *all* columns and the specified new ones.
-        Can include arbitrary expressions involving existing columns.
-    */
-    public with<S>(mutator: (t: T) => S) {
-        return new Dataframe<Mutate<T, S>>();
     }
 
     /* Joins */

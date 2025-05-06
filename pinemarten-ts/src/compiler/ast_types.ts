@@ -1,4 +1,4 @@
-// Define types for a simplified R AST
+// Define types for our simplified R AST.
 
 export interface RVariableDeclaration {
     type: 'VariableDeclaration';
@@ -42,14 +42,17 @@ export interface RIdentifier {
 }
 
 export interface RDataColumn {
+    // These come from the property assignments in an object literal.
     type: 'DataColumn';
     name: string;
     value: RExpression | RStatement;
 }
 
 export interface RDataLiteral {
+    // These come from object literals.
+    // It's extremely likely that we'll want to use object literals for something else too later.
     type: 'DataLiteral';
-    columns: (RExpression | RStatement)[];
+    columnAssignments: (RExpression | RStatement)[]; // Rely on TS syntax to validate that these can only be PropertyAssignments.
 }
 
 export interface RIfStatement {

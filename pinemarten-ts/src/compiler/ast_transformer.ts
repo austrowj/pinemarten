@@ -82,7 +82,7 @@ export class RTransformer {
                     type: 'PropertyAccess',
                     object,
                     property,
-                    isFunction: isFunction,
+                    isFunction,
                 };
             }
             case ts.SyntaxKind.IfStatement: {
@@ -123,7 +123,7 @@ export class RTransformer {
             case ts.SyntaxKind.ObjectLiteralExpression: {
                 const obj = node as ts.ObjectLiteralExpression;
                 const props = obj.properties.map(x => this.transformNode(x));
-                return { type: 'DataLiteral', columns: props }
+                return { type: 'DataLiteral', columnAssignments: props }
             }
             case ts.SyntaxKind.AsExpression: {
                 return this.transformNode((node as ts.AsExpression).expression);

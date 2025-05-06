@@ -1,6 +1,7 @@
 import { isStatement, RStatement, RExpression, RFunctionCall } from './ast_types';
 
-// Printing
+// State-based printer.
+// There is probably a better design but idk what it is and this works for now.
 class Printer {
 
     constructor(private indentText = '    ') { }
@@ -28,7 +29,7 @@ class Printer {
     public getOutput() { return this.output; }
 }
 
-const p = new Printer('    ');
+const p = new Printer('    '); // The actual printer instance we will use.
 
 function printStatement(stmt: RStatement): RStatement { // Return original statement to statically verify all cases are covered.
     switch (stmt.type) {
@@ -107,8 +108,9 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
             return expr;
         }
         case 'PropertyAccess': {
-            // Property access operator '$' has different precedence in R than in TS.
-            // Have to check for and wrap problematic accessors in parentheses.
+            // In R, the property access operator '$' has higher precedence than the pipe '|>'.
+            // However, these are both '.' operators in TS which are always evaluated left to right.
+            // To enforce the correct evaluation order, check for nontrivial property access and wrap the preceeding expression in parentheses.
             if (expr.object.type == 'Identifier' || expr.isFunction) {
                 printExpression(expr.object);
             } else {
@@ -117,7 +119,7 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
                 p.append(')');
             }
 
-            if (expr.isFunction) { p.append(' |> '); }
+            if (expr.isFunction) { p.append(' |> '); } // Don't rely on fancy features from the dplyr '%>%'.
             else { p.append('$'); }
             p.append(expr.property);
             return expr;
@@ -140,12 +142,12 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
             return expr;
         }
         case 'DataLiteral': {
-            p.append('tibble(');
+            p.append('dataframe('); // Function in our own R library allows use of different R backends.
             p.flush();
             p.indent();
-            expr.columns.forEach((x, i) => {
+            expr.columnAssignments.forEach((x, i) => {
                 printRNode(x);
-                if (i < expr.columns.length - 1) { p.append(', '); }
+                if (i < expr.columnAssignments.length - 1) { p.append(', '); }
                 p.flush();
             });
             p.unindent();
@@ -156,8 +158,8 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
 }
 
 function printRNode(node: RStatement | RExpression): void {
-    if (isStatement(node)) { printStatement(node); }
-    else { printExpression(node); }
+    if (isStatement(node)) { printStatement(node);  }
+    else                   { printExpression(node); }
 }
 
 export function printR(ast: RStatement[]): string {

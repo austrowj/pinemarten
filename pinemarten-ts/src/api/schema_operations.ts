@@ -2,6 +2,14 @@
 
 export type KeyOfType<T, R> = string & keyof {[P in keyof T as T[P] extends R ? P : never]: T[P]}
 
+// New type that _only_ performs renaming.
+export type Rename<T, S extends {[K in keyof S]: keyof T}> = 
+    & Omit<T, 
+        | S[keyof S] // Exclude the original of each renamed column.
+        | keyof S    // Also have the new column win any name collisions.
+    >
+    & { [K in keyof S]: T[S[K]] }; // Add the new column names.
+
 // Type for dplyr select().
 export type Reshape<
     T, // the source table

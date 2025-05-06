@@ -4,6 +4,8 @@ import {Dataframe} from '../src/api/defs';
 
 function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
 
+    df.rename({id: 'zz'}).schema
+
     function test_transform<T extends { id: number }>(x: T) { return x.id + 1 }
     const count = 3;
 

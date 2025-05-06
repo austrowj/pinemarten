@@ -1,4 +1,4 @@
-import { KeyOfType, Reshape, Join, Where, WhereEq } from './schema_operations'
+import { KeyOfType, Reshape, Rename, Join, Where, WhereEq } from './schema_operations'
 
 type Mutate<T, S> =
     & {[Field in Exclude<keyof T, keyof S>]: T[Field]}
@@ -7,6 +7,18 @@ type Mutate<T, S> =
 
 export class Dataframe<T> {
     public readonly schema = {} as T;
+
+    /* Strict API that only permits choosing columns, renaming columns, and adding new columns. */
+
+    public choose<S extends keyof T>(names: S[]) {
+        return new Dataframe<Reshape<T, {}, S>>();
+    }
+
+    public rename<S extends {[K in keyof S]: keyof T}>(newNames: S) {
+        return new Dataframe<Rename<T, S>>();
+    }
+
+    public augment<S>() {}
 
     /* TODO: this API is not friendly for preserving column schema guarantees. */
 

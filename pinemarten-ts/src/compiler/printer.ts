@@ -119,7 +119,7 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
             return expr;
         }
         case 'RDataLiteral': {
-            p.append('dataframe('); // Function in our own R library allows use of different R backends.
+            p.append('tibble::tibble('); // Function in our own R library allows use of different R backends.
             p.flush();
             p.indent();
             expr.columnAssignments.forEach((x, i) => {

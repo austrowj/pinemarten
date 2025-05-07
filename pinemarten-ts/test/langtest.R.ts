@@ -1,4 +1,4 @@
-import {Dataframe} from '../src/api/defs';
+import {Dataframe} from '../src/api/language';
 
 /* Testing code */
 
@@ -29,7 +29,7 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
         .augment(x => ({ test: x.n * 0 as 0 }))
     ;
     
-    df2.schema;
+    df2.columns();
     test_transform(df2.augment(x => ({ id: 1 })).schema); // only permitted with fields of the expected name and type
 
     df2.whereEq('n', 1).schema; // type of n is now literal '1'

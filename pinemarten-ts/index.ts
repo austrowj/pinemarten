@@ -1,4 +1,4 @@
-export { Dataframe } from "./src/api/defs";
+export { Dataframe } from "./src/api/language";
 
 export class TestEnv<T> {
 

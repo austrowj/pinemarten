@@ -1,7 +1,18 @@
-import { KeyOfType, Choose, Rename, Augment, Join, Where, WhereEq } from './schema_operations'
+import { KeyOfType, Choose, Rename, AddColumn, Augment, Join, Where, WhereEq } from './schema_operations'
+
+export class Columns<T> {
+    public readonly col = {} as T;
+
+    public ref<K extends keyof T>(key: K): T[K] {
+        return {} as T[K];
+    }
+
+    constructor(s: T) {}
+}
 
 export class Dataframe<T> {
     public readonly schema = {} as T;
+    public columns() {return {} as T};
 
     /* Strict API that only permits choosing columns, renaming columns, and adding new columns. */
 
@@ -13,8 +24,16 @@ export class Dataframe<T> {
         return new Dataframe<Rename<T, S>>();
     }
 
+    public addColumn<N extends string, R>(name: N, compute: (t: T) => R) {
+        return new Dataframe<AddColumn<T, N, R>>()
+    }
+
     // It's okay to accept a completely arbitrary function, provided there are no name collisions.
     public augment<S>(augmentation: (t: T) => S) {
+        return new Dataframe<Augment<T, S>>();
+    }
+
+    public augmentColumns<S>(augmentation: (t: Columns<T>) => Columns<S>) {
         return new Dataframe<Augment<T, S>>();
     }
 
@@ -59,4 +78,11 @@ export class Dataframe<T> {
     }
 
     public where(predicate: (t: T) => boolean) {return this;} // completely arbitrary predicate
+
+    // Disallow instantiating for now.
+    private constructor() {}
+}
+
+export function foo(x: Dataframe<''>) {
+    x.choose(['bold'])
 }

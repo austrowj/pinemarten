@@ -13,6 +13,14 @@ export type Rename<T, S extends {[K in keyof S]: keyof T}> =
         & { [K in keyof S]: T[S[K]] }   // Add the new column names.
     : never;
 
+// Attempt by adding just one field at a time.
+export type AddColumn<T, K extends string, R> =
+    K & keyof T extends never ? // Cannot reuse existing name
+        & {[N in K]: R}
+        & T
+    : never
+;
+
 // Restricted version of 'mutate' that only accepts unbound column names.
 export type Augment<T, S> =
     keyof S & keyof T extends never ? // No overwriting existing columns.

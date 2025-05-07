@@ -126,6 +126,10 @@ export class IntermediateTransformer {
             }
             
             case ts.SyntaxKind.Identifier: {
+                const symbol = this.typeChecker.getSymbolAtLocation(node as ts.Identifier)!;
+                this.typeChecker.getTypeOfSymbolAtLocation(symbol, node).flags;
+                ts.ObjectFlags;
+
                 return { type: 'Identifier', name: (node as ts.Identifier).text };
             }
             case ts.SyntaxKind.ParenthesizedExpression: {

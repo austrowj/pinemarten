@@ -47,9 +47,11 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
         case 'RBlock': {
             p.append('{');
             p.flush();
+            p.flush();
             p.indent();
             expr.statements.forEach(x => {
                 printExpression(x);
+                p.flush();
                 p.flush();
             });
             p.unindent();
@@ -101,7 +103,10 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
                 p.append(')');
             }
 
-            if (expr.isFunction) { p.append(' |> '); } // Don't rely on fancy features from the dplyr '%>%'.
+            if (expr.isFunction) {
+                p.append(' |>'); // Don't rely on fancy features from the dplyr '%>%'.
+                p.flush();
+            }
             else { p.append('$'); }
             p.append(expr.property);
             return expr;
@@ -146,6 +151,7 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
 export function printR(ast: RExpression[]): string {
     ast.forEach(x => {
         printExpression(x);
+        p.flush();
         p.flush();
     });
     return p.getOutput();

@@ -181,7 +181,7 @@ export class IntermediateTransformer {
                 const prop = node as ts.PropertyAssignment;
                 return { type: 'PropertyAssignment', name: prop.name.getText(), value: this.transformNode(prop.initializer) }
             }
-            case ts.SyntaxKind.ObjectLiteralExpression: {
+            case ts.SyntaxKind.ObjectLiteralExpression: { // TODO: Object literals are lists in R!
                 const obj = node as ts.ObjectLiteralExpression;
                 const props = obj.properties.map(x => this.transformNode(x));
                 return { type: 'ObjectLiteral', properties: props }

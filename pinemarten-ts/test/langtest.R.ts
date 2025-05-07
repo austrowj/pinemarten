@@ -4,7 +4,7 @@ import {Dataframe} from '../src/api/language';
 
 function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
 
-    df.rename({id: 'zz'}).schema
+    df.choose(['id', 'zz']).columns()
 
     function test_transform<T extends { id: number }>(x: T) { return x.id + 1 }
     const count = 3;

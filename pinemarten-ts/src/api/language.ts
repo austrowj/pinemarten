@@ -83,6 +83,4 @@ export class Dataframe<T> {
     private constructor() {}
 }
 
-export function foo(x: Dataframe<''>) {
-    x.choose(['bold'])
-}
+export type AnyDataframe = Dataframe<any>;

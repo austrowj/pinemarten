@@ -131,6 +131,15 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
             p.append(')');
             return expr;
         }
+        case 'RArrayLiteral': {
+            p.append('c(');
+            expr.elements.forEach((x, i) => {
+                printExpression(x);
+                if (i < expr.elements.length - 1) { p.append(', '); }
+            });
+            p.append(')');
+            return expr;
+        }
     }
 }
 

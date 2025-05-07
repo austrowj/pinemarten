@@ -1,7 +1,10 @@
 import * as ts from 'typescript';
 import {Expression, EmptyStatement, FunctionDefinition} from './ir_ast';
+import {walk} from './ir_ast_preprocess';
 
 export class IntermediateTransformer {
+
+    private dataframeType: ts.Type;
 
     private program: ts.Program;
     private sourceFile: ts.SourceFile;
@@ -11,13 +14,40 @@ export class IntermediateTransformer {
     // Entry point
     constructor(filename: string) {
 
+        this.dataframeType = this.findDataframeType();
+
         this.program = ts.createProgram([filename], {});
         this.sourceFile = this.program.getSourceFile(filename)!;
         this.typeChecker = this.program.getTypeChecker();
-        this.ast = this.transformAST();
+
+        const rawAst = this.transformAST();
+        this.ast = rawAst.map(walk);
     }
 
     public getAST() { return this.ast; }
+
+    private findDataframeType() {
+        const program = ts.createProgram(['src/api/language.ts'], {});
+        const sourceFile = program.getSourceFile('src/api/language.ts');
+        const checker = program.getTypeChecker();
+
+        if (!sourceFile) throw new Error('Language definitions not found.');
+
+        // Step 1: Find the MyClass declaration and get its type
+        let dataframeType: ts.Type | undefined;
+
+        ts.forEachChild(sourceFile, function findMyClass(node) {
+            if (ts.isClassDeclaration(node) && node.name?.text === 'Dataframe') {
+                const symbol = checker.getSymbolAtLocation(node.name);
+                if (symbol) {
+                    dataframeType = checker.getDeclaredTypeOfSymbol(symbol);
+                }
+            }
+        });
+
+        if (!dataframeType) throw new Error('Definition for "Dataframe" not found.');
+        return dataframeType;
+    }
 
     private transformAST(): Expression[] {
         const rAst: Expression[] = [];
@@ -82,13 +112,20 @@ export class IntermediateTransformer {
 
                 // TODO: this is where we need to detect access to special methods and perform our compiler magic.
                 // !! Create special nodes for these in the IR AST !!
-                const isFunction = this.typeChecker.getSignaturesOfType(this.typeChecker.getTypeAtLocation(pa.name), ts.SignatureKind.Call).length > 0;
+                const propertyIsFunction = this.typeChecker.getSignaturesOfType(this.typeChecker.getTypeAtLocation(pa.name), ts.SignatureKind.Call).length > 0;
+
+                const objType = this.typeChecker.getTypeAtLocation(pa.expression);
+                const objectIsDataframe = objType.symbol?.name == this.dataframeType.symbol.name;//this.typeChecker.isTypeAssignableTo(objType, this.dataframeType);
+                if (objType.symbol) console.log(`${objType.symbol.name} at ${node.getFullText()}`);
+
+                //if (objectIsDataframe) throw new Error('An object is a data frame!! yay');
 
                 return {
                     type: 'PropertyAccess',
                     object,
                     property,
-                    isFunction,
+                    propertyIsFunction,
+                    objectIsDataframe
                 };
             }
             case ts.SyntaxKind.IfStatement: {
@@ -123,6 +160,11 @@ export class IntermediateTransformer {
             case ts.SyntaxKind.FalseKeyword: {
                 const lit = node as ts.LiteralExpression;
                 return { type: 'Literal', text: 'FALSE' };
+            }
+
+            case ts.SyntaxKind.ArrayLiteralExpression: {
+                const lit = node as ts.ArrayLiteralExpression;
+                return { type: 'ArrayLiteral', elements: lit.elements.map(x => this.transformNode(x)) };
             }
             
             case ts.SyntaxKind.Identifier: {

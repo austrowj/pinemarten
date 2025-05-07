@@ -29,6 +29,11 @@ export interface RLiteral {
     text: string;
 }
 
+export interface RArrayLiteral {
+    type: 'RArrayLiteral';
+    elements: RExpression[];
+}
+
 export interface RIdentifier {
     type: 'RIdentifier';
     name: string;
@@ -81,6 +86,7 @@ export type RExpression =
     | RParenthesizedExpression
     | RDataColumn
     | RDataLiteral
+    | RArrayLiteral
     | RIfStatement
     | RBlock
     | REmptyStatement

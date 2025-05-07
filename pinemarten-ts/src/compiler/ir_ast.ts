@@ -1,3 +1,5 @@
+import {Dataframe} from '../api/language';
+
 // Define types for the intermediate representation.
 
 export interface Assignment {
@@ -9,12 +11,12 @@ export interface Assignment {
 export interface FunctionDefinition {
     type: 'FunctionDefinition';
     params: string[];
-    body: Expression | Expression;
+    body: Expression;
 }
 
 export interface FunctionCall {
     type: 'FunctionCall';
-    functionName: Expression | Expression;
+    functionName: Expression;
     arguments: Expression[];
 }
 
@@ -27,12 +29,17 @@ export interface BinaryExpression {
 
 export interface ParenthesizedExpression {
     type: 'ParenthesizedExpression';
-    inner: Expression | Expression;
+    inner: Expression;
 }
 
 export interface Literal {
     type: 'Literal';
     text: string;
+}
+
+export interface ArrayLiteral {
+    type: 'ArrayLiteral';
+    elements: Expression[];
 }
 
 export interface Identifier {
@@ -63,7 +70,8 @@ export interface PropertyAccess {
     type: 'PropertyAccess';
     object: Expression;
     property: string;
-    isFunction: boolean;
+    propertyIsFunction: boolean;
+    objectIsDataframe: boolean;
 }
 
 export interface Block {
@@ -85,6 +93,7 @@ export type Expression =
     | ParenthesizedExpression
     | PropertyAssignment
     | ObjectLiteral
+    | ArrayLiteral
     | Assignment
     | IfStatement
     | Block
@@ -100,6 +109,7 @@ export function childrenOf(node: Expression): Expression[] {
         case 'FunctionDefinition':      return [node.body];
         case 'IfStatement':             return [node.condition, node.thenBranch, node.elseBranch];
         case 'ObjectLiteral':           return  node.properties;
+        case 'ArrayLiteral':            return  node.elements;
         case 'ParenthesizedExpression': return [node.inner];
         case 'PropertyAccess':          return [node.object];
         case 'PropertyAssignment':      return [node.value];
@@ -107,5 +117,70 @@ export function childrenOf(node: Expression): Expression[] {
         case 'Identifier':
         case 'Literal':
         case 'EmptyStatement':          return [];
+    }
+}
+
+export function substitute(node: Expression, fn: (expr: Expression) => Expression): Expression {
+    node = fn(node);
+    switch (node.type) {
+        case 'Assignment': return {
+            type: node.type,
+            name: node.name,
+            value: substitute(node.value, fn)
+        };
+        case 'BinaryExpression': return {
+            type: node.type,
+            operator: node.operator,
+            left: substitute(node.left, fn),
+            right: substitute(node.right, fn)
+        };
+        case 'Block': return {
+            type: node.type,
+            statements: node.statements.map(x => substitute(x, fn))
+        };
+        case 'FunctionCall': return {
+            type: node.type,
+            functionName: substitute(node.functionName, fn),
+            arguments: node.arguments.map(x => substitute(x, fn))
+        };
+        case 'FunctionDefinition': return {
+            type: node.type,
+            params: node.params,
+            body: substitute(node.body, fn)
+        };
+        case 'IfStatement': return {
+            type: node.type,
+            condition: substitute(node.condition, fn),
+            thenBranch: substitute(node.thenBranch, fn),
+            elseBranch: substitute(node.elseBranch, fn)
+        };
+        case 'ObjectLiteral': return {
+            type: node.type,
+            properties: node.properties.map(x => substitute(x, fn))
+        };
+        case 'ArrayLiteral': return {
+            type: node.type,
+            elements: node.elements.map(x => substitute(x, fn))
+        };
+        case 'ParenthesizedExpression': return {
+            type: node.type,
+            inner: substitute(node.inner, fn)
+        };
+        case 'PropertyAccess': return {
+            type: node.type,
+            object: substitute(node.object, fn),
+            property: node.property,
+            objectIsDataframe: node.objectIsDataframe,
+            propertyIsFunction: node.propertyIsFunction
+        };
+        case 'PropertyAssignment': return {
+            type: node.type,
+            name: node.name,
+            value: substitute(node.value, fn)
+        };
+
+        case 'Identifier':
+        case 'Literal':
+        case 'EmptyStatement': return node;
     }
 }

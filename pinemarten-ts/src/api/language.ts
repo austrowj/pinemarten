@@ -1,18 +1,14 @@
-import { KeyOfType, Choose, Rename, AddColumn, Augment, Join, Where, WhereEq } from './schema_operations'
+import { KeyOfType, Choose, Rename, Augment, Join, Where, WhereEq } from './schema_operations'
 
-export class Columns<T> {
-    public readonly col = {} as T;
+// Funky type magic to enable the augment method.
+type FunctionMap<T> = { [key: string]: (t: T) => any; };
 
-    public ref<K extends keyof T>(key: K): T[K] {
-        return {} as T[K];
-    }
-
-    constructor(s: T) {}
+type ResultMap<T, F extends FunctionMap<T>> = {
+    [K in keyof F]: F[K] extends (t: T) => infer R ? R : never;
 }
 
 export class Dataframe<T> {
-    public readonly schema = {} as T;
-    public columns() {return {} as T};
+    public columns() {return {} as T}; // A way to access the schema that can't be an lvalue.
 
     /* Strict API that only permits choosing columns, renaming columns, and adding new columns. */
 
@@ -24,41 +20,10 @@ export class Dataframe<T> {
         return new Dataframe<Rename<T, S>>();
     }
 
-    public addColumn<N extends string, R>(name: N, compute: (t: T) => R) {
-        return new Dataframe<AddColumn<T, N, R>>()
-    }
-
-    // It's okay to accept a completely arbitrary function, provided there are no name collisions.
-    public augment<S>(augmentation: (t: T) => S) {
+    // It's okay to accept completely arbitrary functions, provided there are no name collisions.
+    // This is implemented on the backend by dplyr mutate, which ensures the rows are untouched.
+    public augment<F extends FunctionMap<T>, S extends ResultMap<T, F>>(augmentations: F) {
         return new Dataframe<Augment<T, S>>();
-    }
-
-    public augmentColumns<S>(augmentation: (t: Columns<T>) => Columns<S>) {
-        return new Dataframe<Augment<T, S>>();
-    }
-
-    /* TODO: this API is not friendly for preserving column schema guarantees. */
-
-    /*
-        Both 'as' and 'with' compile into a mutate call, which means their argument has to be translated to a
-        dplyr data-mask by the compiler.
-        Current idea: compiler will accept only a very specific AST head:
-            - Arrow function
-            - Single argument
-            - Body is exactly a parenthesized expression containing an object literal, and nothing else
-            - Compiler will replace references to the argument using the ".data" syntax
-        This means that named functions can't be used even though it results in valid Typescript :/ but a
-        function that accepts a Dataframe and calls "as"/"with" on it is okay.
-        
-        I guess this behavior matches that you cannot pass "mutate" a function that returns a data-mask.
-    */
-
-    /*
-        Selects *only* the specified columns.
-        Can include arbitrary expressions involving existing columns.
-    */
-    public as<S>(selector: (t: T) => S) {
-        return new Dataframe<S>();
     }
 
     /* Joins */

@@ -103,7 +103,7 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
                 p.append(')');
             }
 
-            if (expr.isFunction) {
+            if (expr.isFunction) { // TODO: this doesn't produce the correct syntax for properties that are functions.
                 p.append(' |>'); // Don't rely on fancy features from the dplyr '%>%'.
                 p.flush();
             }

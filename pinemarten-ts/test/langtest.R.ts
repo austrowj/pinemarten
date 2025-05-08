@@ -12,31 +12,34 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
     count.toLocaleString().repeat(3*(1+2));
 
     const df2 = df
-        .as(x => ({
-            id2: test_transform(x),
-            n0: x.name,
-            mystr: x.name.repeat(count),
-            zz: x.zz
-        }))
+        .augment({
+            id2: test_transform,
+            n0: x => x.name,
+            mystr: x => x.name.repeat(count)
+        })
+        .choose(['id2', 'n0', 'mystr', 'zz'])
     
-        .augment(x => {
+        .augment((() => {
             const w = 7;
             return {
-                derived: x.mystr.lastIndexOf('g'),
-                n: w // requiring unique column names broke this haha yes perfect
+                derived: x => x.mystr.lastIndexOf('g'),
+                n: x => w // requiring unique column names broke this haha yes perfect
             };
+        })())
+        .augment({
+            test: x => x.n * 0 as 0,
+            n1: x => '' // If you use an existing name it doesn't work! Yay
         })
-        .augment(x => ({ test: x.n * 0 as 0 }))
     ;
     
     df2.columns();
-    test_transform(df2.augment(x => ({ id: 1 })).schema); // only permitted with fields of the expected name and type
+    test_transform(df2.augment({ id: x => 1 }).columns()); // only permitted with fields of the expected name and type
 
-    df2.whereEq('n', 1).schema; // type of n is now literal '1'
-    df2.where(x => x.n == 1 && x.mystr.endsWith('.xlsx')).schema; // column schema is unchanged
+    df2.whereEq('n', 1).columns(); // type of n is now literal '1'
+    df2.where(x => x.n == 1 && x.mystr.endsWith('.xlsx')).columns(); // column schema is unchanged
 
-    df.augment(x => ({ id2: x.id, mystr: '' })).joinOn(df2, 'id2').schema;
-    df.join(df2, 'id', 'test').schema;
+    df.augment({ id2: x => x.id, mystr: x => '' }).joinOn(df2, 'id2').columns();
+    df.join(df2, 'id', 'test').columns();
 
     function test_table_transform<T extends { id?: number, id2?: number }>(df: T) {
         return {
@@ -46,6 +49,6 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
         }
     }
 
-    df.as(test_table_transform).schema; // works!
+    //df.as(test_table_transform).columns(); // works! // lol nope
     
 }

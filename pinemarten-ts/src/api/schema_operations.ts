@@ -13,14 +13,6 @@ export type Rename<T, S extends {[K in keyof S]: keyof T}> =
         & { [K in keyof S]: T[S[K]] }   // Add the new column names.
     : never;
 
-// Attempt by adding just one field at a time.
-export type AddColumn<T, K extends string, R> =
-    K & keyof T extends never ? // Cannot reuse existing name
-        & {[N in K]: R}
-        & T
-    : never
-;
-
 // Restricted version of 'mutate' that only accepts unbound column names.
 export type Augment<T, S> =
     keyof S & keyof T extends never ? // No overwriting existing columns.
@@ -28,24 +20,6 @@ export type Augment<T, S> =
         & { [K in keyof S]: S[K] }
     : never
 ;
-
-// Type for dplyr select().
-export type Reshape<
-    T, // the source table
-    Rename extends { [Field in keyof Rename]: keyof T } = {}, // new names as object keys and original names as values
-    Select extends keyof T = never, // union of verbatim fields
-> =
-    & { [Field in keyof Rename]: T[Rename[Field]] }
-    & { [K in Select]: T[K]};
-
-// Type for dplyr mutate().
-export type Mutate<
-    T, // input table
-    N extends string, // result name(s), probably should just permit a single literal
-    R, // result type
-> = 
-    & Omit<T, N> // if any result names are already on the table, replace them
-    & {[P in N]: R};
 
 // Type for dplyr join().
 // Supports two types of joins: specify shared key, or an explicitly-named key from each table.

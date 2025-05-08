@@ -46,7 +46,7 @@ export interface RPropertyAccess {
     type: 'RPropertyAccess';
     object: RExpression;
     property: string;
-    isFunction: boolean;
+    isPipedCall: boolean;
 }
 
 export interface RBlock {

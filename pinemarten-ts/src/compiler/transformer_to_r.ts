@@ -67,7 +67,7 @@ export class RTransformer {
                 type: 'RPropertyAccess',
                 object: this.transformNode(node.object),
                 property: node.property,
-                isFunction: node.propertyIsFunction // TODO: convert property access to a binary operator upstream (using '$' or '|>')
+                isPipedCall: node.propertyIsFunction && node.objectIsDataframe
             };
 
             case 'Identifier':      return {type: 'RIdentifier', name: node.name};

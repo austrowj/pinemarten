@@ -95,7 +95,7 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
             // In R, the property access operator '$' has higher precedence than the pipe '|>'.
             // However, these are both '.' operators in TS which are always evaluated left to right.
             // To enforce the correct evaluation order, check for nontrivial property access and wrap the preceeding expression in parentheses.
-            if (expr.object.type == 'RIdentifier' || expr.isFunction) {
+            if (expr.object.type == 'RIdentifier' || expr.isPipedCall) {
                 printExpression(expr.object);
             } else {
                 p.append('(');
@@ -103,7 +103,7 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
                 p.append(')');
             }
 
-            if (expr.isFunction) { // TODO: this doesn't produce the correct syntax for properties that are functions.
+            if (expr.isPipedCall) { // TODO: this doesn't produce the correct syntax for properties that are functions.
                 p.append(' |>'); // Don't rely on fancy features from the dplyr '%>%'.
                 p.flush();
             }

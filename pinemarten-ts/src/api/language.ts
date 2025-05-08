@@ -82,5 +82,3 @@ export class Dataframe<T> {
     // Disallow instantiating for now.
     private constructor() {}
 }
-
-export type AnyDataframe = Dataframe<any>;

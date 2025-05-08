@@ -1,6 +1,6 @@
 import * as ts from 'typescript';
 import {Expression, EmptyStatement, FunctionDefinition} from './ir_ast';
-import {walk} from './ir_ast_preprocess';
+//import {walk} from './ir_ast_preprocess';
 
 export class IntermediateTransformer {
 
@@ -21,7 +21,7 @@ export class IntermediateTransformer {
         this.typeChecker = this.program.getTypeChecker();
 
         const rawAst = this.transformAST();
-        this.ast = rawAst.map(walk);
+        this.ast = rawAst;//.map(walk);
     }
 
     public getAST() { return this.ast; }

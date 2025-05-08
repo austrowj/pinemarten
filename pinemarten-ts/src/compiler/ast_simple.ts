@@ -1,6 +1,5 @@
-import {Dataframe} from '../api/language';
 
-// Define types for the intermediate representation.
+// Define types for a simplified representation of the Typescript AST.
 
 export interface Assignment {
     type: 'Assignment';

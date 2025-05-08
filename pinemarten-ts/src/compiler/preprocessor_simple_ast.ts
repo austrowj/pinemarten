@@ -1,4 +1,4 @@
-import { Expression, ObjectLiteral, PropertyAssignment, Identifier, childrenOf, substitute } from './ir_ast';
+import { Expression, ObjectLiteral, PropertyAssignment, Identifier, childrenOf, substitute } from './ast_simple';
 
 export function walk(expr: Expression) {
     // All the transformations to apply.

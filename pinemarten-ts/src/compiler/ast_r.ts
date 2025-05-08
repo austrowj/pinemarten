@@ -1,4 +1,5 @@
-// Define types for our simplified R AST.
+
+// Define types for a subset of the R AST.
 
 export interface RFunctionDefinition {
     type: 'RFunctionDefinition';

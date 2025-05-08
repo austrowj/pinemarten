@@ -1,5 +1,5 @@
-import * as ir_ast from './ir_ast';
-import * as r_ast from './r_ast';
+import * as ir_ast from './ast_simple';
+import * as r_ast from './ast_r';
 
 export class RTransformer {
 

@@ -1,8 +1,8 @@
 import * as ts from 'typescript';
-import {Expression, EmptyStatement, FunctionDefinition} from './ir_ast';
+import {Expression, EmptyStatement, FunctionDefinition} from './ast_simple';
 //import {walk} from './ir_ast_preprocess';
 
-export class IntermediateTransformer {
+export class SimplifyingTransformer {
 
     private dataframeType: ts.Type;
 

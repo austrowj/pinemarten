@@ -117,34 +117,6 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
             p.append(')');
             return expr;
         }
-        case 'RDataColumn': {
-            p.append(expr.name);
-            p.append(' = ');
-            printExpression(expr.value);
-            return expr;
-        }
-        case 'RDataLiteral': {
-            p.append('tibble::tibble('); // Function in our own R library allows use of different R backends.
-            p.flush();
-            p.indent();
-            expr.columnAssignments.forEach((x, i) => {
-                printExpression(x);
-                if (i < expr.columnAssignments.length - 1) { p.append(', '); }
-                p.flush();
-            });
-            p.unindent();
-            p.append(')');
-            return expr;
-        }
-        case 'RArrayLiteral': {
-            p.append('c(');
-            expr.elements.forEach((x, i) => {
-                printExpression(x);
-                if (i < expr.elements.length - 1) { p.append(', '); }
-            });
-            p.append(')');
-            return expr;
-        }
     }
 }
 

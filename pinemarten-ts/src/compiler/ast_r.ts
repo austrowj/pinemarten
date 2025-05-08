@@ -30,28 +30,9 @@ export interface RLiteral {
     text: string;
 }
 
-export interface RArrayLiteral {
-    type: 'RArrayLiteral';
-    elements: RExpression[];
-}
-
 export interface RIdentifier {
     type: 'RIdentifier';
     name: string;
-}
-
-export interface RDataColumn {
-    // These come from the property assignments in an object literal.
-    type: 'RDataColumn';
-    name: string;
-    value: RExpression;
-}
-
-export interface RDataLiteral {
-    // These come from object literals.
-    // It's extremely likely that we'll want to use object literals for something else too later.
-    type: 'RDataLiteral';
-    columnAssignments: RExpression[]; // Rely on TS syntax to validate that these can only be PropertyAssignments.
 }
 
 export interface RIfStatement {
@@ -85,9 +66,6 @@ export type RExpression =
     | RFunctionCall
     | RPropertyAccess
     | RParenthesizedExpression
-    | RDataColumn
-    | RDataLiteral
-    | RArrayLiteral
     | RIfStatement
     | RBlock
     | REmptyStatement

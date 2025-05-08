@@ -75,22 +75,25 @@ export class RTransformer {
             case 'EmptyStatement':  return {type: 'REmptyStatement'};
 
             case 'ArrayLiteral': return {
-                type: 'RArrayLiteral',
-                elements: node.elements.map(x => this.transformNode(x))
+                type: 'RFunctionCall',
+                functionName: {type:'RLiteral', text: 'c'},
+                arguments: node.elements.map(x => this.transformNode(x))
             };
 
-            // These are ambiguous; if any made it through the transformation process unaltered, it's an error.
+            // Object literals correspond fairly nicely to lists because the elements in an R list can be named.
             case 'ObjectLiteral': {
                 return {
-                    type: 'RDataLiteral',
-                    columnAssignments: node.properties.map(x => this.transformNode(x))
+                    type: 'RFunctionCall',
+                    functionName: {type: 'RLiteral', text: 'list'},
+                    arguments: node.properties.map(x => this.transformNode(x))
                 };
             }
             case 'PropertyAssignment': {
                 return {
-                    type: 'RDataColumn',
-                    name: node.name,
-                    value: this.transformNode(node.value)
+                    type: 'RBinaryExpression',
+                    operator: '=',
+                    left: {type: 'RLiteral', text: node.name},
+                    right: this.transformNode(node.value)
                 };
             }
         }

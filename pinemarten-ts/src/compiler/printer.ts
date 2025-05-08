@@ -49,7 +49,7 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
             p.flush();
             p.flush();
             p.indent();
-            expr.statements.forEach(x => {
+            expr.statements.filter(x => x.type != 'REmptyStatement').forEach(x => {
                 printExpression(x);
                 p.flush();
                 p.flush();
@@ -149,7 +149,7 @@ function printExpression(expr: RExpression): RExpression { // Return the origina
 }
 
 export function printR(ast: RExpression[]): string {
-    ast.forEach(x => {
+    ast.filter(x => x.type != 'REmptyStatement').forEach(x => {
         printExpression(x);
         p.flush();
         p.flush();

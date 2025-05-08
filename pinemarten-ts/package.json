@@ -5,8 +5,9 @@
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsc",
-    "test-compiler": "tsc && node dist/test/compiletest.js",
-    "compile": "node dist/test/compiletest.js"
+    "test-compiler": "tsc && node dist/src/compiler/compile.js",
+    "test-compiler-default": "tsc && node dist/src/compiler/compile.js test_programs/simple_test.R.ts",
+    "compile": "node dist/src/compiler/compile.js"
   },
   "keywords": [],
   "author": "",

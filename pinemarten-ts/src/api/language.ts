@@ -7,6 +7,20 @@ type ResultMap<T, F extends FunctionMap<T>> = {
     [K in keyof F]: F[K] extends (t: T) => infer R ? R : never;
 }
 
+/*  Given a column schema and a function, construct an object that maps the parameters of
+    that function to names of columns in the schema with a compatible type.
+*/
+type FunctionDataBinding<T, F> = 
+    F extends (args: infer A) => infer R
+        ? {[K in keyof A]: KeyOfType<T, A[K]>}
+        : never;
+
+// Test the data binding type
+function foo(x: {a: number, b: string}) {return x.b.repeat(x.a);}
+(df: Dataframe<{id: number, name: string, zz: number}>) => {
+    df.augment2(foo, {a: 'zz', b: 'name'})
+}
+
 export class Dataframe<T> {
     public columns() {return {} as T}; // A way to access the schema that can't be an lvalue.
 
@@ -25,6 +39,8 @@ export class Dataframe<T> {
     public augment<F extends FunctionMap<T>, S extends ResultMap<T, F>>(augmentations: F) {
         return new Dataframe<Augment<T, S>>();
     }
+
+    public augment2<F>(fn: F, args: FunctionDataBinding<T, F>) {}
 
     /* Joins */
 

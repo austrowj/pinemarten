@@ -15,11 +15,11 @@ type FunctionDataBinding<T, F> =
         ? {[K in keyof A]: KeyOfType<T, A[K]>}
         : never;
 
-// Test the data binding type
-function foo(x: {a: number, b: string}) {return x.b.repeat(x.a);}
-(df: Dataframe<{id: number, name: string, zz: number}>) => {
-    df.augment2(foo, {a: 'zz', b: 'name'})
-}
+// ReturnType<> at home
+type FunctionResultValue<F> =
+    F extends (args: infer A) => infer R
+        ? R
+        : never;
 
 export class Dataframe<T> {
     public columns() {return {} as T}; // A way to access the schema that can't be an lvalue.
@@ -34,13 +34,16 @@ export class Dataframe<T> {
         return new Dataframe<Rename<T, S>>();
     }
 
-    // It's okay to accept completely arbitrary functions, provided there are no name collisions.
-    // This is implemented on the backend by dplyr mutate, which ensures the rows are untouched.
-    public augment<F extends FunctionMap<T>, S extends ResultMap<T, F>>(augmentations: F) {
-        return new Dataframe<Augment<T, S>>();
+    // Permit any function to be 'functor'ed onto the dataframe, but with a very strict parameter binding mechanism.
+    // This is clunky as hell to use but should be very safe.
+    public augment<N extends string, F>(name: N, fn: F, args: FunctionDataBinding<T, F>) {
+        return new Dataframe<Augment<T, { [n in N]: FunctionResultValue<F> }>>();
     }
 
-    public augment2<F>(fn: F, args: FunctionDataBinding<T, F>) {}
+    // There are a lot of problems with this design, don't use it.
+    public augment_bad<F extends FunctionMap<T>, S extends ResultMap<T, F>>(augmentations: F) {
+        return new Dataframe<Augment<T, S>>();
+    }
 
     /* Joins */
 

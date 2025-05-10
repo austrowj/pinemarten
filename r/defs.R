@@ -17,7 +17,7 @@ rename <- function(df, rename_specification) {
 
 augment <- function(df, col_name, f, argument_binding) {
     # argument_binding is just a named list whose names are the parameters of f and values are the columns of df to use.
-    new_column <- lapply(lst, function(colname) df[[colname]]) |> f()
+    new_column <- lapply(argument_binding, function(colname) df[[colname]]) |> f()
     df[col_name] <- new_column
     df
 }

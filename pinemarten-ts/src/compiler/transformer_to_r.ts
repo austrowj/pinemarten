@@ -76,7 +76,7 @@ export class RTransformer {
 
             case 'ArrayLiteral': return {
                 type: 'RFunctionCall',
-                functionName: {type:'RLiteral', text: 'c'},
+                functionName: {type:'RLiteral', text: 'list'},
                 arguments: node.elements.map(x => this.transformNode(x))
             };
 

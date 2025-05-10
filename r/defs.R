@@ -2,7 +2,11 @@ requireNamespace('tibble')
 requireNamespace('dplyr')
 
 columns <- function(df) df # Double-shim function; allows access to columns as properties from typescript.
-choose <- dplyr::select # Only supports the simplest kind of select
+
+choose <- function(df, choose_specification) {
+    # The choose specification is a simple list of names.
+    df[unlist(choose_specification)]
+}
 
 rename <- function(df, rename_specification) {
     # The rename specification is originally an object literal. In R it is a list.

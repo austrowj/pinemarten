@@ -110,10 +110,9 @@ export class SimplifyingTransformer {
                 const object = this.transformNode(pa.expression);
                 const property = pa.name.text;
 
-                // TODO: this is where we need to detect access to special methods and perform our compiler magic.
-                // !! Create special nodes for these in the IR AST !!
                 const propertyIsFunction = this.typeChecker.getSignaturesOfType(this.typeChecker.getTypeAtLocation(pa.name), ts.SignatureKind.Call).length > 0;
 
+                // TODO: make this work properly instead of hacking via the name.
                 const objType = this.typeChecker.getTypeAtLocation(pa.expression);
                 const objectIsDataframe = objType.symbol?.name == this.dataframeType.symbol.name;//this.typeChecker.isTypeAssignableTo(objType, this.dataframeType);
                 if (objType.symbol) console.log(`${objType.symbol.name} at ${node.getFullText()}`);

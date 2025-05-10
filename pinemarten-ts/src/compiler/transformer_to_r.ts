@@ -5,8 +5,7 @@ export class RTransformer {
 
     private rAst: r_ast.RExpression[];
 
-    // Entry point
-    constructor(ast: ir_ast.Expression[], private context: any = {}) {
+    constructor(ast: ir_ast.Expression[]) {
         this.rAst = this.transform(ast);
     }
 
@@ -23,7 +22,6 @@ export class RTransformer {
         return rAst;
     }
 
-    // Transformer function (TODO)
     private transformNode(node: ir_ast.Expression): r_ast.RExpression {
         switch (node.type) {
             

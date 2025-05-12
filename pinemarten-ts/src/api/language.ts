@@ -27,6 +27,13 @@ type FunctionResultValue<F> =
         ? R
         : never;
 
+// Problem: cannot infer argument types this way.
+// However, if we insist that every function takes a single argument as above, we will have to wrap every native R function.
+// A conundrum...
+type FunctionArgsObject<T, F> =
+    F extends (...args: any) => any ? Parameters<F> : never ;
+let test: FunctionArgsObject<never, (x: number) => number>;
+
 export class Dataframe<T> {
     public columns() {return {} as T}; // A way to access the schema that can't be an lvalue.
 
@@ -72,3 +79,7 @@ export class Dataframe<T> {
     // Disallow instantiating for now.
     private constructor() {}
 }
+
+/* Function stubs */
+export function ifelse<Y, N>(test: boolean, yes: Y, no: N): Y | N { return {} as Y | N; }
+export function strrep(x: string, times: number): string { return {} as string;}

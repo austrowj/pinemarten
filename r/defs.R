@@ -21,11 +21,3 @@ augment <- function(df, col_name, f, argument_binding) {
     df[col_name] <- new_column
     df
 }
-
-augment_bad <- function(df, augment_specification) {
-    # The augment specification is an object literal. In R it is a list.
-    # The properties of the object are the new column names and the values are the functions to compute those columns.
-    # Mutate() itself ensures that the rows are unaffected apart from adding the new columns.
-    computed_cols <- lapply(spec, function(f) f(df))
-    df |> dplyr::mutate(!!!computed_cols, .keep = 'all')
-}

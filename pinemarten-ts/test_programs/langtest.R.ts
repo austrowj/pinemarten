@@ -1,4 +1,4 @@
-import {Dataframe} from '../src/api/language';
+import {Dataframe, strrep, ifelse} from '../src/api/language';
 
 /* Testing code */
 
@@ -6,40 +6,35 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
 
     df.choose(['id', 'zz']).columns()
 
-    function test_transform<T extends { id: number }>(x: T) { return x.id + 1 }
+    function test_transform(x: { id: number }) { return x.id + 1 }
     const count = 3;
 
-    count.toLocaleString().repeat(3*(1+2));
+    function my_strrep(x: {x: string, times: number}) { return strrep(x.x, x.times); }
 
     const df2 = df
-        .augment_bad({
-            id2: test_transform,
-            n0: x => x.name,
-            mystr: x => x.name.repeat(count)
-        })
+        .augment('id2', test_transform, {id: 'id'})
+        .augment('n0', (x: {name: string}) => x.name, {name: 'name'})
+        .augment('mystr', my_strrep, {x: 'n0', times: 'id2'})
         .choose(['id2', 'n0', 'mystr', 'zz'])
     
-        .augment_bad((() => {
+        .augment('seven', (() => {
             const w = 7;
-            return {
-                derived: x => x.mystr.lastIndexOf('g'),
-                n: x => w // requiring unique column names broke this haha yes perfect
-            };
-        })())
-        .augment_bad({
-            test: x => x.n * 0 as 0,
-            n1: x => '' // If you use an existing name it doesn't work! Yay
-        })
+            return (x: {}) => w;
+        })(), {})
+        .augment('test', (x: {n: number}) => x.n * 0 as 0, {n: 'seven'})
+        .augment('n1', (x: {text: string, test: boolean}) => ifelse(x.test, '', x.text), {text: 'mystr', test: 'zz'})
     ;
     
     df2.columns();
-    test_transform(df2.augment_bad({ id: x => 1 }).columns()); // only permitted with fields of the expected name and type
+    //test_transform(df2.augment_bad({ id: x => 1 }).columns()); // only permitted with fields of the expected name and type
 
+    /*
     df2.whereEq('n', 1).columns(); // type of n is now literal '1'
     df2.where(x => x.n == 1 && x.mystr.endsWith('.xlsx')).columns(); // column schema is unchanged
 
     df.augment_bad({ id2: x => x.id, mystr: x => '' }).joinOn(df2, 'id2').columns();
     df.join(df2, 'id', 'test').columns();
+    */
 
     function test_table_transform<T extends { id?: number, id2?: number }>(df: T) {
         return {

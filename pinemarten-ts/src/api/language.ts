@@ -1,5 +1,11 @@
 import { KeyOfType, Choose, Rename, Augment, Join, Where, WhereEq } from './schema_operations'
 
+// Types that correspond to vectors natively in R.
+// Columns that don't use one of these must use an Array.
+export type Vector = string | number | boolean;
+export type DataframeColumnType<T> = T extends Vector ? T : Array<T>;
+export type DataframeColumns<P> = {[p in keyof P]: DataframeColumnType<p>}; // Map an object into its dataframe column types.
+
 // Funky type magic to enable the augment method.
 type FunctionMap<T> = { [key: string]: (t: T) => any; };
 

@@ -3,6 +3,11 @@ import { RTransformer } from './transformer_to_r';
 import { printR } from './printer';
 import * as fs from 'fs';
 
+/*  TODO list, in no particular order:
+    - Prevent creating identifiers out of words that are reserved in R.
+    - Insert a force(<params>) at the top of each function definition at compile time to subvert lazy evaluation.
+*/
+
 function compile(filename: string) {
     const simpleAst = new SimplifyingTransformer(filename).getAST();
     const rAst = new RTransformer(simpleAst).getAST();

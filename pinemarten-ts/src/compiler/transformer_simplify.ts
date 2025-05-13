@@ -115,7 +115,7 @@ export class SimplifyingTransformer {
                 // TODO: make this work properly instead of hacking via the name.
                 const objType = this.typeChecker.getTypeAtLocation(pa.expression);
                 const objectIsDataframe = objType.symbol?.name == this.dataframeType.symbol.name;//this.typeChecker.isTypeAssignableTo(objType, this.dataframeType);
-                if (objType.symbol) console.log(`${objType.symbol.name} at ${node.getFullText()}`);
+                //if (objType.symbol) console.log(`${objType.symbol.name} at ${node.getFullText()}`);
 
                 //if (objectIsDataframe) throw new Error('An object is a data frame!! yay');
 

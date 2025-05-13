@@ -1,6 +1,8 @@
 import { SimplifyingTransformer } from './transformer_simplify';
 import { RTransformer } from './transformer_to_r';
 import { printR } from './printer';
+import { dependencies, depsLocation } from './dependencies';
+
 import * as fs from 'fs';
 
 /*  TODO list, in no particular order:
@@ -34,6 +36,10 @@ function execute() {
         console.log(output_text);
     } else {
         fs.writeFileSync(args[1] + '/' + out_filename, output_text);
+        dependencies.forEach(dep => {
+            fs.copyFileSync(depsLocation + '/' + dep, args[1] + '/' + dep);
+            console.log(`Copied ${dep} to target directory.`);
+        });
     }
 }
 

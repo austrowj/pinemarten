@@ -1,5 +1,6 @@
 import * as ir_ast from './ast_simple';
 import * as r_ast from './ast_r';
+import { dependencies } from './dependencies';
 
 export class RTransformer {
 
@@ -13,6 +14,15 @@ export class RTransformer {
 
     private transform(ast: ir_ast.Expression[]): r_ast.RExpression[] {
         const rAst: r_ast.RExpression[] = [];
+
+        dependencies.forEach(dep => {
+            rAst.push({
+                type: 'RFunctionCall',
+                functionName: {type: 'RLiteral', text: 'source'},
+                arguments: [{type: 'RLiteral', text: `'./${dep}'`}]
+            });
+        });
+
         ast.forEach(node => {
             const transformed = this.transformNode(node);
             if (transformed) {

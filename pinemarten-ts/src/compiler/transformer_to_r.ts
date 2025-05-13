@@ -33,7 +33,7 @@ export class RTransformer {
             };
             case 'BinaryExpression': return {
                 type: 'RBinaryExpression',
-                operator: node.operator,
+                operator: this.mapOperator(node.operator),
                 left: this.transformNode(node.left),
                 right: this.transformNode(node.right)
             };
@@ -94,6 +94,26 @@ export class RTransformer {
                     right: this.transformNode(node.value)
                 };
             }
+        }
+    }
+
+    private mapOperator(op: string): string {
+        switch(op) {
+            case '&&': return '&';
+            case '||': return '|';
+            case '===': return '=';
+            case '!==': return '!=';
+
+            case '**': return '^';
+            case '%': return '%%';
+
+            case '<<':
+            case '>>':
+            case '&':
+            case '|':
+            case '^': throw new Error(`Bitwise operators ("${op}") not supported.`)
+
+            default: return op;
         }
     }
 

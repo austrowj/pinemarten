@@ -1,4 +1,4 @@
-import {Dataframe, strrep, ifelse, dataframe, print} from '../src/api/language';
+import {Dataframe, strrep, ifelse, fabricate_dataframe, print} from '../src/api/language';
 
 /* Testing code */
 
@@ -48,12 +48,19 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
     return df2;
 }
 
-const df = dataframe([
+const df = fabricate_dataframe([
     {id: 1, name: "foo", zz: false},
     {id: 2, name: "hello", zz: true},
     {id: 7, name: "bar", zz: true},
     {zz: true, id: 999, name: "world"}
-])
+]);
+print(df);
 
 const result = test(df);
 print(result);
+
+const list_df = fabricate_dataframe([
+    {num: 3, words: ['goodbye', 'arrivederci', 'sayounara']},
+    {num: 2, words: ['foo', 'bar']}
+]);
+print(list_df);

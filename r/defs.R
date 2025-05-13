@@ -1,5 +1,6 @@
 requireNamespace('tibble')
 requireNamespace('dplyr')
+requireNamespace('purrr')
 
 columns <- function(df) df # Double-shim function; allows access to columns as properties from typescript.
 
@@ -22,6 +23,11 @@ augment <- function(df, col_name, f, argument_binding) {
     df
 }
 
-dataframe <- function(columns) {
-    # columns argument is a single list
+fabricate_dataframe <- function(records) {
+    # records argument is a list of lists, in an "array-of-structs" format.
+    records |>
+        purrr::map(~ tibble::tibble(
+            !!!purrr::map(.x, ~ ifelse(is.list(.), list(.), .)) # Wrap list-type columns in another list to prevent flattening.
+        )) |>
+        purrr::list_rbind()
 }

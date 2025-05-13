@@ -91,7 +91,7 @@ type AllDefined<T> =
 //  2. We *can* enforce that every record has the same fields at compile time.
 // R will see the argument as a list of lists; it's probably best not to construct a huge data object this way ;)
 // Might be a good candidate for some compiler magic down the line.
-export function dataframe<T>(
+export function fabricate_dataframe<T>(
     data: T extends AllDefined<T> ? T[] : never // Insist that all fields are present in every record.
 ) {return {} as Dataframe<T>;}
 

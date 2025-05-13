@@ -6,23 +6,29 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
 
     df.choose(['id', 'zz']).columns()
 
-    function test_transform(x: { id: number }) { return x.id + 1 }
+    function test_transform(x: { num: number }) { return x.num + 1 }
     const count = 3;
+
+    function isInWindow(x: {p: number, center: number, width: number}) {return 0 - x.width <= x.p - x.center && x.p - x.center <= x.width}
+    function getWindowFunction(center: number, width: number) {
+        return (x: {p: number}) => isInWindow({p: x.p, center: center, width: width})
+    }
 
     function my_strrep(x: {x: string, times: number}) { return strrep(x.x, x.times); }
 
     const df2 = df
-        .augment('id2', test_transform, {id: 'id'})
+        .augment('id2', test_transform, {num: 'id'})
         .augment('n0', (x: {name: string}) => x.name, {name: 'name'})
         .augment('mystr', my_strrep, {x: 'n0', times: 'id2'})
-        .choose(['id2', 'n0', 'mystr', 'zz'])
+        .augment('window', getWindowFunction(180, 30), {p: 'id2'})
+        .choose(['window', 'id2', 'n0', 'mystr', 'zz'])
     
-        .augment('seven', (() => {
-            const w = 7;
+        .augment('seven', ((w: number) => {
             return (x: {}) => w;
-        })(), {})
+        })(6), {})
         .augment('test', (x: {n: number}) => x.n * 0 as 0, {n: 'seven'})
         .augment('n1', (x: {text: string, test: boolean}) => ifelse(x.test, '', x.text), {text: 'mystr', test: 'zz'})
+        .whereEq('zz', false)
     ;
     
     df2.columns();

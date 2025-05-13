@@ -80,6 +80,31 @@ export class Dataframe<T> {
     private constructor() {}
 }
 
+// Detect if any columns have missing data.
+type AllDefined<T> =
+    {[t in keyof T]: T[t] extends undefined ? false : true
+    }[keyof T] extends false ? never : T;
+
+// Manufature a dataframe out of an array-of-structs.
+// It's an impedance mismatch with R's struct-of-arrays, however:
+//  1. We can't enforce equal-length arrays at compile time.
+//  2. We *can* enforce that every record has the same fields at compile time.
+// R will see the argument as a list of lists; it's probably best not to construct a huge data object this way ;)
+// Might be a good candidate for some compiler magic down the line.
+export function dataframe<T>(
+    data: T extends AllDefined<T> ? T[] : never // Insist that all fields are present in every record.
+) {return {} as Dataframe<T>;}
+
 /* Function stubs */
-export function ifelse<Y, N>(test: boolean, yes: Y, no: N): Y | N { return {} as Y | N; }
-export function strrep(x: string, times: number): string { return {} as string;}
+export function ifelse<Y, N>(test: boolean, yes: Y, no: N): Y | N   { return {} as Y | N; }
+export function strrep(x: string, times: number):           string  { return {} as string; }
+export function print(x: Dataframe<any> | any[] | string):  void    { }
+export function paste0(...args: any[]):                     string  { return {} as string; }
+
+
+/* Decided not to use this stuff but leaving as an example for now. */
+type ListedSchema<T> = { [t in keyof T]: T[t][] } // Turn the properties of an object into arrays.
+type UnlistedSchema<T> = { [t in keyof T]: T[t] extends (infer U)[] ? U : never }
+type ValidatedUnlistedSchema<T> =
+    { [t in keyof T]: T[t] extends any[] ? true : false
+    }[keyof T] extends false ? never : UnlistedSchema<T>;

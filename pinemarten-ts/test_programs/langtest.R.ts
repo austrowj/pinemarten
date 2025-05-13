@@ -1,4 +1,4 @@
-import {Dataframe, strrep, ifelse} from '../src/api/language';
+import {Dataframe, strrep, ifelse, dataframe, print} from '../src/api/language';
 
 /* Testing code */
 
@@ -45,5 +45,15 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
     }
 
     //df.as(test_table_transform).columns(); // works! // lol nope
-    
+    return df2;
 }
+
+const df = dataframe([
+    {id: 1, name: "foo", zz: false},
+    {id: 2, name: "hello", zz: true},
+    {id: 7, name: "bar", zz: true},
+    {zz: true, id: 999, name: "world"}
+])
+
+const result = test(df);
+print(result);

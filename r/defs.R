@@ -21,3 +21,7 @@ augment <- function(df, col_name, f, argument_binding) {
     df[col_name] <- new_column
     df
 }
+
+dataframe <- function(columns) {
+    # columns argument is a single list
+}

@@ -68,13 +68,13 @@ export class Dataframe<T> {
         return new Dataframe<Join<T, S>>();
     }
 
-    /* Wheres */
+    /* Filters */
     
-    public whereEq<K extends string & keyof T, V extends T[K]>(column: K, value: V) {
+    public narrow<K extends string & keyof T, V extends T[K]>(column: K, value: V) {
         return new Dataframe<WhereEq<T, K, V>>();
     }
 
-    public where(predicate: (t: T) => boolean) {return this;} // completely arbitrary predicate
+    public filter(predicate: (t: T) => boolean) {return this;} // completely arbitrary predicate (NOTE: this won't work, need to fix)
 
     // Disallow instantiating for now.
     private constructor() {}

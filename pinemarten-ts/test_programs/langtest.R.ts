@@ -27,8 +27,7 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
             return (x: {}) => w;
         })(6), {})
         .augment('test', (x: {n: number}) => x.n * 0 as 0, {n: 'seven'})
-        .augment('n1', (x: {text: string, test: boolean}) => ifelse(x.test, '', x.text), {text: 'mystr', test: 'zz'})
-        .whereEq('zz', false)
+        .augment('n1', (x: {text: string, test: boolean}) => ifelse(x.test || x.text == 'foofoo', '', x.text), {text: 'mystr', test: 'zz'})
     ;
     
     df2.columns();
@@ -64,6 +63,7 @@ print(df);
 
 const result = test(df);
 print(result);
+print(result.narrow('zz', false));
 
 const list_df = fabricate_dataframe([
     {num: 3, words: ['goodbye', 'arrivederci', 'sayounara']},

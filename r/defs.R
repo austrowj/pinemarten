@@ -23,6 +23,10 @@ augment <- function(df, col_name, f, argument_binding) {
     df
 }
 
+narrow <- function(df, col_name, val) {
+    df[df[[col_name]] == val, ] # The comma is very important :)
+}
+
 fabricate_dataframe <- function(records) {
     # records argument is a list of lists, in an "array-of-structs" format.
     records |>

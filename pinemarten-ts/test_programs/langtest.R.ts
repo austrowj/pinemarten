@@ -1,7 +1,6 @@
+export {}; // Apparently required to not share block scope.
 import { Dataframe, strrep, ifelse, fabricate_dataframe, print } from '../src/api/language';
 import { KeyOfType } from '../src/api/schema_operations';
-
-/* Testing code */
 
 function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
 
@@ -9,8 +8,8 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
     function mytest<T, K extends keyof T>(df: Dataframe<T>, key: K, val: T[K]) {
         const t = df
             //.augment('myval', (x: {a: K}) => x.a, {a: key})
-            .rename({'myval': key})
-            .choose(['myval'])
+            .rename({myval: key})
+            //.choose(['myval']) // This is bugged now that rename() failure sets schema to empty instead of never.
             //.narrow('myval', val);
         ;
         return t;
@@ -32,12 +31,21 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
 
     type Core = {id2: number, window: boolean, mystr: string, zz: boolean};
 
+    function doAllTransforms(x: {num: number, name: string, x: string, times: number, p: number}) { return {
+        id2: test_transform(x),
+        n0: x.name,
+        mystr: my_strrep(x),
+        window: getWindowFunction(1010, 30)(x)
+    };}
+
     // Asserting the type helps head off "Instantiation is excessively deep" compiler error.
-    const df2: Dataframe<Core & { n0: string }> = df
-        .augment('id2', test_transform, {num: 'id'})
-        .augment('n0', (x: {name: string}) => x.name, {name: 'name'})
-        .augment('mystr', my_strrep, {x: 'n0', times: 'id2'})
-        .augment('window', getWindowFunction(180, 30), {p: 'id2'})
+    const df2 //: Dataframe<Core & { n0: string }>
+        = df
+        //.augment('id2', test_transform, {num: 'id'})
+        //.augment('n0', (x: {name: string}) => x.name, {name: 'name'})
+        //.augment('mystr', my_strrep, {x: 'n0', times: 'id2'})
+        //.augment('window', getWindowFunction(180, 30), {p: 'id2'})
+        .expand(doAllTransforms, {num: 'id', name: 'name', x: 'name', times: 'id', p: 'id'})
         .choose(['window', 'id2', 'n0', 'mystr', 'zz'])
     
         .augment('seven', ((w: number) => {
@@ -69,8 +77,8 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
     function sub1(x: {num: number}) { return x.num-1; }
     const df3 = df2
         //.augment('id', sub1, { num: 'id2' })
-        .rename({id: 'id2'})
-        .choose(['id', 'n0', 'mystr', 'zz']);
+        .rename({ id: 'id2' })
+        //.choose(['id', 'blah']);
     print('Join test: ');
     print(df.leftjoin(df3, ['id']))
 

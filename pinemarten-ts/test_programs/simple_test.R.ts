@@ -17,5 +17,5 @@ function foo(df: Dataframe<{id: number, name: string, stuff: Dataframe<string>}>
 
     function addOneToID<T extends {id: number}>(x: T) { return x.id + 1; }
 
-    df.augment_bad({my_field: addOneToID}).columns();
+    //df.augment_bad({my_field: addOneToID}).columns();
 }

@@ -49,13 +49,12 @@ export class Dataframe<T> {
 
     // Permit any function to be 'functor'ed onto the dataframe, but with a very strict parameter binding mechanism.
     // This is clunky as hell to use but should be very safe.
-    public augment<N extends string, F>(name: N, fn: F, args: FunctionDataBinding<T, F>) {
-        return new Dataframe<Augment<T, { [n in N]: FunctionResultValue<F> }>>();
+    public augment<N extends string, F extends (a: any) => any>(name: N, fn: F, args: FunctionDataBinding<T, F>) {
+        return new Dataframe<Augment<T, { [n in N]: ReturnType<F> }>>();
     }
 
-    // There are a lot of problems with this design, don't use it.
-    public augment_bad<F extends FunctionMap<T>, S extends ResultMap<T, F>>(augmentations: F) {
-        return new Dataframe<Augment<T, S>>();
+    public expand<F extends (a: any) => any>(fn: F, args: FunctionDataBinding<T, F>) {
+        return new Dataframe<Augment<T, { [n in keyof ReturnType<F>]: ReturnType<F>[n] }>>();
     }
 
     /* Joins */

@@ -36,6 +36,7 @@ function execute() {
         console.log(output_text);
     } else {
         fs.writeFileSync(args[1] + '/' + out_filename, output_text);
+        console.log('Success!');
         dependencies.forEach(dep => {
             fs.copyFileSync(depsLocation + '/' + dep, args[1] + '/' + dep);
             console.log(`Copied ${dep} to target directory.`);

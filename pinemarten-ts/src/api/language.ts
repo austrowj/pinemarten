@@ -1,4 +1,4 @@
-import { KeyOfType, Choose, Rename, Augment, Join, Where, WhereEq } from './schema_operations'
+import { Group, KeyOfType, Choose, Rename, Augment, Join, Where, WhereEq } from './schema_operations'
 
 // Funky type magic to enable the augment method.
 type FunctionMap<T> = { [key: string]: (t: T) => any; };
@@ -25,7 +25,7 @@ type FunctionArgsObject<T, F> =
     F extends (...args: any) => any ? Parameters<F> : never ;
 let test: FunctionArgsObject<never, (x: number) => number>;
 
-export class Dataframe<T> {
+export class Dataframe<T, G extends Group<T>[] = []> {
     public columns() {return {} as T}; // A way to access the schema that can't be an lvalue.
 
     /* Strict API that only permits choosing columns, renaming columns, and adding new columns. */

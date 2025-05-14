@@ -1,5 +1,20 @@
 // Types for keeping track of dataframe schema changes.
 
+export type Group<T> = {
+    reference: symbol,
+    columns: (keyof T)[],
+    cardinality: '<=1' | '==1' | '>=1'
+}
+
+type ChooseWithGroups<T, G extends Group<T>, Select extends keyof T> = {
+    columns: Choose<T, Select>,
+    group: G['columns'] | Select extends G['columns']
+        ? G
+        : G['cardinality'] extends '==1'
+        ? Omit<G, 'cardinality'> & {cardinality: '>= 1'}
+        : {}
+};
+
 export type KeyOfType<T, R> = keyof {[P in keyof T as T[P] extends R ? P : never]: T[P]}
 
 export type Choose<T, Select extends keyof T> =

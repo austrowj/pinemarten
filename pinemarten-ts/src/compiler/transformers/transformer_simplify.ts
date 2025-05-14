@@ -180,6 +180,10 @@ export class SimplifyingTransformer {
                 const prop = node as ts.PropertyAssignment;
                 return { type: 'PropertyAssignment', name: prop.name.getText(), value: this.transformNode(prop.initializer) }
             }
+            case ts.SyntaxKind.ShorthandPropertyAssignment: {
+                const prop = node as ts.ShorthandPropertyAssignment;
+                return { type: 'PropertyAssignment', name: prop.name.getText(), value: {type: 'Identifier', name: prop.name.getText()} };
+            }
             case ts.SyntaxKind.ObjectLiteralExpression: { // TODO: Object literals are lists in R!
                 const obj = node as ts.ObjectLiteralExpression;
                 const props = obj.properties.map(x => this.transformNode(x));
@@ -190,6 +194,7 @@ export class SimplifyingTransformer {
             }
 
             // Ignore these elements
+            case ts.SyntaxKind.EmptyStatement:
             case ts.SyntaxKind.ExportDeclaration:
             case ts.SyntaxKind.TypeAliasDeclaration:
             case ts.SyntaxKind.ImportDeclaration:

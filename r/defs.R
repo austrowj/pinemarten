@@ -4,6 +4,7 @@ requireNamespace('purrr')
 requireNamespace('rlang')
 
 columns <- function(df) df # Double-shim function; allows access to columns as properties from typescript.
+Symbol <- function() NULL  # Shim to prevent R errors when using symbols in TS.
 
 choose <- function(df, choose_specification) {
     # The choose specification is a simple list of names.
@@ -16,7 +17,7 @@ rename <- function(df, rename_specification) {
     old_names <- unname(rename_specification)
     new_names <- names(rename_specification)
     df <- dplyr::rename(df, !!!rlang::set_names(old_names, new_names))
-    return(df)
+    df
 }
 
 augment <- function(df, col_name, f, argument_binding) {

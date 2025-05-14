@@ -1,4 +1,4 @@
-import { RExpression } from './ast/ast_r';
+import { RExpression } from './asts/ast_r';
 
 // State-based printer.
 // There is probably a better design but idk what it is and this works for now.

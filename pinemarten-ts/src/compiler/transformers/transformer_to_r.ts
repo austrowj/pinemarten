@@ -1,6 +1,6 @@
-import * as ir_ast from './ast/ast_simple';
-import * as r_ast from './ast/ast_r';
-import { dependencies } from './dependencies';
+import * as ir_ast from '../asts/ast_simple';
+import * as r_ast from '../asts/ast_r';
+import { dependencies } from '../dependencies';
 
 export class RTransformer {
 

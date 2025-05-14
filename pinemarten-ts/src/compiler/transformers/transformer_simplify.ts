@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import {Expression, EmptyStatement, FunctionDefinition} from './ast/ast_simple';
+import {Expression, EmptyStatement, FunctionDefinition} from '../asts/ast_simple';
 //import {walk} from './ir_ast_preprocess';
 
 export class SimplifyingTransformer {

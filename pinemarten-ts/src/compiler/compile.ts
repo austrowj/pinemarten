@@ -1,5 +1,5 @@
-import { SimplifyingTransformer } from './transformer_simplify';
-import { RTransformer } from './transformer_to_r';
+import { SimplifyingTransformer } from './transformers/transformer_simplify';
+import { RTransformer } from './transformers/transformer_to_r';
 import { printR } from './printer';
 import { dependencies, depsLocation } from './dependencies';
 

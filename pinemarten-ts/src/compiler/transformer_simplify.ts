@@ -190,6 +190,7 @@ export class SimplifyingTransformer {
             }
 
             // Ignore these elements
+            case ts.SyntaxKind.TypeAliasDeclaration:
             case ts.SyntaxKind.ImportDeclaration:
             case ts.SyntaxKind.EndOfFileToken:
                 return { type: 'EmptyStatement' };

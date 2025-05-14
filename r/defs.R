@@ -26,6 +26,11 @@ augment <- function(df, col_name, f, argument_binding) {
     df
 }
 
+graft <- function(df, fn, argument_binding) {
+    new_columns <- lapply(argument_binding, function(colname) df[[colname]]) |> fn()
+    dplyr::bind_cols(df, new_columns)
+}
+
 leftjoin <- function(left, right, column_names) {
     dplyr::left_join(left, right, unlist(column_names)) # column_names come in as a list and the contents have already been verified.
 }

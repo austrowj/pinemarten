@@ -45,7 +45,7 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
         //.augment('n0', (x: {name: string}) => x.name, {name: 'name'})
         //.augment('mystr', my_strrep, {x: 'n0', times: 'id2'})
         //.augment('window', getWindowFunction(180, 30), {p: 'id2'})
-        .expand(doAllTransforms, {num: 'id', name: 'name', x: 'name', times: 'id', p: 'id'})
+        .graft(doAllTransforms, {num: 'id', name: 'name', x: 'name', times: 'id', p: 'id'})
         .choose(['window', 'id2', 'n0', 'mystr', 'zz'])
     
         .augment('seven', ((w: number) => {

@@ -27,6 +27,9 @@ type FunctionResultValue<F> =
         ? R
         : never;
 
+// TODO: use this to permit prefixing the new columns from graft.
+type Prefixed<X, P extends string> = `${P}${keyof X & string}`
+
 // Problem: cannot infer argument types this way.
 // However, if we insist that every function takes a single argument as above, we will have to wrap every native R function.
 // A conundrum...
@@ -53,7 +56,8 @@ export class Dataframe<T> {
         return new Dataframe<Augment<T, { [n in N]: ReturnType<F> }>>();
     }
 
-    public expand<F extends (a: any) => any>(fn: F, args: FunctionDataBinding<T, F>) {
+    // Do a bunch of augments at once.
+    public graft<F extends (a: any) => any>(fn: F, args: FunctionDataBinding<T, F>, prefix: string = '') {
         return new Dataframe<Augment<T, { [n in keyof ReturnType<F>]: ReturnType<F>[n] }>>();
     }
 

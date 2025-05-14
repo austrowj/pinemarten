@@ -1,6 +1,7 @@
 requireNamespace('tibble')
 requireNamespace('dplyr')
 requireNamespace('purrr')
+requireNamespace('rlang')
 
 columns <- function(df) df # Double-shim function; allows access to columns as properties from typescript.
 
@@ -12,8 +13,10 @@ choose <- function(df, choose_specification) {
 rename <- function(df, rename_specification) {
     # The rename specification is originally an object literal. In R it is a list.
     # The properties of the object are the new names and the values are the old names.
-    spec_symbols <- lapply(rename_specification, function(old) expr(!!dplyr::sym(old))) # Only necessary to make .keep work.
-    dplyr::mutate(!!!spec_symbols, .keep = 'unused')
+    old_names <- unname(rename_specification)
+    new_names <- names(rename_specification)
+    df <- dplyr::rename(df, !!!rlang::set_names(old_names, new_names))
+    return(df)
 }
 
 augment <- function(df, col_name, f, argument_binding) {

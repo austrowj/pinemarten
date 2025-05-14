@@ -1,11 +1,5 @@
 import { KeyOfType, Choose, Rename, Augment, Join, Where, WhereEq } from './schema_operations'
 
-// Types that correspond to vectors natively in R.
-// Columns that don't use one of these must use an Array.
-export type Vector = string | number | boolean;
-export type DataframeColumnType<T> = T extends Vector ? T : Array<T>;
-export type DataframeColumns<P> = {[p in keyof P]: DataframeColumnType<p>}; // Map an object into its dataframe column types.
-
 // Funky type magic to enable the augment method.
 type FunctionMap<T> = { [key: string]: (t: T) => any; };
 
@@ -19,12 +13,6 @@ type ResultMap<T, F extends FunctionMap<T>> = {
 type FunctionDataBinding<T, F> = 
     F extends (args: infer A) => infer R
         ? {[K in keyof A]: KeyOfType<T, A[K]>}
-        : never;
-
-// ReturnType<> at home
-type FunctionResultValue<F> =
-    F extends (args: infer A) => infer R
-        ? R
         : never;
 
 // TODO: use this to permit prefixing the new columns from graft.
@@ -106,11 +94,3 @@ export function ifelse<Y, N>(test: boolean, yes: Y, no: N): Y | N   { return {} 
 export function strrep(x: string, times: number):           string  { return {} as string; }
 export function print(x: Dataframe<any> | any[] | string):  void    { }
 export function paste0(...args: any[]):                     string  { return {} as string; }
-
-
-/* Decided not to use this stuff but leaving as an example for now. */
-type ListedSchema<T> = { [t in keyof T]: T[t][] } // Turn the properties of an object into arrays.
-type UnlistedSchema<T> = { [t in keyof T]: T[t] extends (infer U)[] ? U : never }
-type ValidatedUnlistedSchema<T> =
-    { [t in keyof T]: T[t] extends any[] ? true : false
-    }[keyof T] extends false ? never : UnlistedSchema<T>;

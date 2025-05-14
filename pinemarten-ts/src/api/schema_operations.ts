@@ -1,6 +1,6 @@
 // Types for keeping track of dataframe schema changes.
 
-export type KeyOfType<T, R> = string & keyof {[P in keyof T as T[P] extends R ? P : never]: T[P]}
+export type KeyOfType<T, R> = keyof {[P in keyof T as T[P] extends R ? P : never]: T[P]}
 
 export type Choose<T, Select extends keyof T> =
     { [K in Select]: T[K] };

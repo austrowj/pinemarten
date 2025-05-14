@@ -59,6 +59,9 @@ export class Dataframe<T> {
     }
 
     /* Joins */
+    public leftjoin<S, L extends keyof (T | S)>(other: Dataframe<S>, keys: L[]) {
+        return new Dataframe<Join<T, S, L>>();
+    }
 
     public joinOn<S, L extends keyof (T | S) & string>(other: Dataframe<S>, key: L, kind: string = 'left') {
         return new Dataframe<Join<T, S, L>>();
@@ -70,7 +73,7 @@ export class Dataframe<T> {
 
     /* Filters */
     
-    public narrow<K extends string & keyof T, V extends T[K]>(column: K, value: V) {
+    public narrow<K extends keyof T, V extends T[K]>(column: K, value: V) {
         return new Dataframe<WhereEq<T, K, V>>();
     }
 

@@ -26,6 +26,10 @@ augment <- function(df, col_name, f, argument_binding) {
     df
 }
 
+leftjoin <- function(left, right, column_names) {
+    dplyr::left_join(left, right, unlist(column_names)) # column_names come in as a list and the contents have already been verified.
+}
+
 narrow <- function(df, col_name, val) {
     df[df[[col_name]] == val, ] # The comma is very important :)
 }

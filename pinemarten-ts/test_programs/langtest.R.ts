@@ -1,8 +1,22 @@
-import {Dataframe, strrep, ifelse, fabricate_dataframe, print} from '../src/api/language';
+import { Dataframe, strrep, ifelse, fabricate_dataframe, print } from '../src/api/language';
+import { KeyOfType } from '../src/api/schema_operations';
 
 /* Testing code */
 
 function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
+
+    // Test demonstrating difficulties with passing key names as parameters.
+    function mytest<T, K extends keyof T>(df: Dataframe<T>, key: K, val: T[K]) {
+        const t = df
+            //.augment('myval', (x: {a: K}) => x.a, {a: key})
+            .rename({'myval': key})
+            .choose(['myval'])
+            //.narrow('myval', val);
+        ;
+        return t;
+    }
+    print('Results of mytest:');
+    print(mytest(df, 'name', ''));
 
     df.choose(['id', 'zz']).columns()
 
@@ -16,7 +30,10 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
 
     function my_strrep(x: {x: string, times: number}) { return strrep(x.x, x.times); }
 
-    const df2 = df
+    type Core = {id2: number, window: boolean, mystr: string, zz: boolean};
+
+    // Asserting the type helps head off "Instantiation is excessively deep" compiler error.
+    const df2: Dataframe<Core & { n0: string }> = df
         .augment('id2', test_transform, {num: 'id'})
         .augment('n0', (x: {name: string}) => x.name, {name: 'name'})
         .augment('mystr', my_strrep, {x: 'n0', times: 'id2'})
@@ -49,6 +66,14 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
         }
     }
 
+    function sub1(x: {num: number}) { return x.num-1; }
+    const df3 = df2
+        //.augment('id', sub1, { num: 'id2' })
+        .rename({id: 'id2'})
+        .choose(['id', 'n0', 'mystr', 'zz']);
+    print('Join test: ');
+    print(df.leftjoin(df3, ['id']))
+
     //df.as(test_table_transform).columns(); // works! // lol nope
     return df2;
 }
@@ -56,7 +81,7 @@ function test(df: Dataframe<{ id: number, name: string, zz: boolean }>) {
 const df = fabricate_dataframe([
     {id: 1, name: "foo", zz: false},
     {id: 2, name: "hello", zz: true},
-    {id: 7, name: "bar", zz: true},
+    {id: 3, name: "bar", zz: true},
     {zz: true, id: 999, name: "world"}
 ]);
 print(df);

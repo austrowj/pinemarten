@@ -1,0 +1,130 @@
+import * as ir_ast from '../asts/ast_simple';
+import * as r_ast from '../asts/ast_r';
+import { dependencies } from '../dependencies';
+
+export class RTransformer {
+
+    private rAst: r_ast.RExpression[];
+
+    constructor(ast: ir_ast.Expression[]) {
+        this.rAst = this.transform(ast);
+    }
+
+    public getAST() { return this.rAst; }
+
+    private transform(ast: ir_ast.Expression[]): r_ast.RExpression[] {
+        const rAst: r_ast.RExpression[] = [];
+
+        dependencies.forEach(dep => {
+            rAst.push({
+                type: 'RFunctionCall',
+                functionName: {type: 'RLiteral', text: 'source'},
+                arguments: [{type: 'RLiteral', text: `'./${dep}'`}]
+            });
+        });
+
+        ast.forEach(node => {
+            const transformed = this.transformNode(node);
+            if (transformed) {
+                rAst.push(transformed);
+            }
+        });
+        return rAst;
+    }
+
+    private transformNode(node: ir_ast.Expression): r_ast.RExpression {
+        switch (node.type) {
+            
+            case 'Assignment': return {
+                type: 'RBinaryExpression',
+                operator: '<-',
+                left: {type: 'RIdentifier', name: node.name},
+                right: this.transformNode(node.value)
+            };
+            case 'BinaryExpression': return {
+                type: 'RBinaryExpression',
+                operator: this.mapOperator(node.operator),
+                left: this.transformNode(node.left),
+                right: this.transformNode(node.right)
+            };
+            case 'Block': return {
+                type: 'RBlock',
+                statements: node.statements.map(x => this.transformNode(x))
+            };
+            case 'FunctionCall': return {
+                type: 'RFunctionCall',
+                functionName: this.transformNode(node.functionName),
+                arguments: node.arguments.map(x => this.transformNode(x))
+            };
+            case 'FunctionDefinition': return {
+                type: 'RFunctionDefinition',
+                params: node.params,
+                body: this.transformNode(node.body)
+            };
+            case 'IfStatement': return {
+                type: 'RIfStatement',
+                condition: this.transformNode(node.condition),
+                thenBranch: this.transformNode(node.thenBranch),
+                elseBranch: this.transformNode(node.elseBranch)
+            };
+            case 'ParenthesizedExpression': return {
+                type: 'RParenthesizedExpression',
+                inner: this.transformNode(node.inner)
+            };
+            case 'PropertyAccess': return {
+                type: 'RPropertyAccess',
+                object: this.transformNode(node.object),
+                property: node.property,
+                isPipedCall: node.propertyIsFunction && node.objectIsDataframe
+            };
+
+            case 'Identifier':      return {type: 'RIdentifier', name: node.name};
+            case 'Literal':         return {type: 'RLiteral', text: node.text};
+            case 'EmptyStatement':  return {type: 'REmptyStatement'};
+
+            case 'ArrayLiteral': return {
+                type: 'RFunctionCall',
+                functionName: {type:'RLiteral', text: 'list'},
+                arguments: node.elements.map(x => this.transformNode(x))
+            };
+
+            // Object literals correspond fairly nicely to lists because the elements in an R list can be named.
+            case 'ObjectLiteral': {
+                return {
+                    type: 'RFunctionCall',
+                    functionName: {type: 'RLiteral', text: 'list'},
+                    arguments: node.properties.map(x => this.transformNode(x))
+                };
+            }
+            case 'PropertyAssignment': {
+                return {
+                    type: 'RBinaryExpression',
+                    operator: '=',
+                    left: {type: 'RLiteral', text: node.name},
+                    right: this.transformNode(node.value)
+                };
+            }
+        }
+    }
+
+    private mapOperator(op: string): string {
+        switch(op) {
+            case '&&': return '&';
+            case '||': return '|';
+            case '===': return '=';
+            case '!==': return '!=';
+
+            case '**': return '^';
+            case '%': return '%%';
+
+            case '<<':
+            case '>>':
+            case '&':
+            case '|':
+            case '^': throw new Error(`Bitwise operators ("${op}") not supported.`)
+
+            default: return op;
+        }
+    }
+
+}

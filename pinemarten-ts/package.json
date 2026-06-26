@@ -5,13 +5,15 @@
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "test-compiler": "tsc && node dist/src/compiler/compile.js",
+    "test-compiler-default": "tsc && node dist/src/compiler/compile.js test_programs/simple_test.R.ts",
+    "compile": "node dist/src/compiler/compile.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^22.13.4",
     "typescript": "^5.6.3"
   }
 }

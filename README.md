@@ -6,12 +6,15 @@ Maybe this could lead to some interesting applications in AI coding workflows.
 
 The project has two (currently independent) arms:
 1) General type-safe data transformation using typescript.
-2) Static verification of valid CDISC SDTM/ADaM schemas using python.
+You write your data transforms as ```.ts``` files and the compiler turns it into executable R code.
+3) Static verification of valid CDISC SDTM/ADaM schemas using python.
 
-In the typescript section:
-1) Implementations of basic ```select```, ```mutate```, ```join```, and ```filter``` as type lambdas (```pinemarten-ts/src/schema_operations.ts```).
-2) DataFrame API that provides static type verification and column name autocomplete, while building the appropriate R AST in the background (```pinemarten-ts/src/rlang/dataframe.ts```).
-3) Rudimentary AST printer that outputs valid R code (```pinemarten-ts/src/rlang/ast.ts```).
+The typescript section is the far more developed of the two and contains:
+1) Implementations of basic ```select```, ```mutate```, ```join```, ```filter```, and ```group by``` as type lambdas (```pinemarten-ts/src/api/schema_operations.ts```).
+2) DataFrame API that uses the type lambdas to statically check operations and provide autocomplete (```pinemarten-ts/src/api/language.ts```).
+3) Typescript-to-R compiler (```pinemarten-ts/src/compiler/*```).
+4) Example programs that compile to valid R code (```pinemarten-ts/test_programs/*.R.ts```).
+You can try editing these, and if you change a column name or type to be invalid, you should see the typescript LSP complain about it.
 
 The python section houses the start of an attempt at some definitions for CDISC concepts using the CDISC API.
 The scripts in ```python_package/scripts``` generate a client for the API and pydantic models for the API objects, respectively.
